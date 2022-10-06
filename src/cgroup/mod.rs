@@ -1,12 +1,15 @@
+mod file_proc;
 pub mod stats;
 
 use std::{
-    fs::File,
-    io::{self, BufRead},
-    path::PathBuf, num::ParseIntError, fmt::Display,
+    io,
+    path::PathBuf,
 };
 
-use self::stats::{STATS, StatType};
+use self::{
+    stats::{STATS, StatType},
+    file_proc::{StatProcessor, get_stat_processor}
+};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -157,150 +160,4 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
     }
 
     Ok(cgroup)
-}
-
-enum StatProcessorError {
-    IoError(io::Error),
-    ValueNotFound,
-    ParseError(ParseIntError),
-}
-
-impl Display for StatProcessorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StatProcessorError::IoError(e) => write!(f, "{}", e),
-            StatProcessorError::ValueNotFound => write!(f, "No value found"),
-            StatProcessorError::ParseError(e) => write!(f, "{}", e),
-        }
-    }
-}
-
-impl From<io::Error> for StatProcessorError {
-    fn from(e: io::Error) -> Self {
-        StatProcessorError::IoError(e)
-    }
-}
-
-impl From<ParseIntError> for StatProcessorError {
-    fn from(e: ParseIntError) -> Self {
-        StatProcessorError::ParseError(e)
-    }
-}
-
-trait StatProcessor {
-    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError>;
-}
-
-fn get_stat_processor(stat: usize) -> Box<dyn StatProcessor> {
-    let split: Vec<&str> = STATS[stat].def().split('/').collect();
-
-    let result: Box<dyn StatProcessor> = if split.len() == 1 {
-        Box::new(SingleValueProcessor::new(split[0]))
-    } else if split.len() == 3 && split[1].starts_with('=') {
-        Box::new(KeyedProcessor::new(split[0], &split[1][1..], split[2]))
-    } else if split.len() == 2 && split[1] == "#" {
-        Box::new(CountProcessor::new(split[0]))
-    } else {
-        panic!("Unrecognised stat processor {}", stat);
-    };
-
-    result
-}
-
-struct SingleValueProcessor {
-    file: String,
-}
-
-impl SingleValueProcessor {
-    fn new(file: &str) -> Self {
-        Self {
-            file: file.into(),
-        }
-    }
-}
-
-impl StatProcessor for SingleValueProcessor {
-    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError> {
-        let mut path = path.clone();
-        path.push(&self.file);
-
-        let file = File::open(path)?;
-
-        match io::BufReader::new(file)
-            .lines()
-            .next()
-        {
-            None => Err(StatProcessorError::ValueNotFound)?,
-            Some(Err(e)) => Err(e)?,
-            Some(Ok(line)) => Ok(line.parse::<usize>()?),
-        }    
-    }
-}
-
-struct KeyedProcessor {
-    file: String,
-    match_string: String,
-    ret_col: usize,
-}
-
-impl KeyedProcessor {
-    fn new(file: &str, line_start: &str, ret_col: &str) -> Self {
-        Self {
-            file: file.into(),
-            match_string: line_start.into(),
-            ret_col: ret_col.parse::<usize>().unwrap(),
-        }
-    }
-}
-
-impl StatProcessor for KeyedProcessor {
-    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError> {
-        let mut path = path.clone();
-        path.push(&self.file);
-
-        let file = File::open(path)?;
-
-        let buf_reader = io::BufReader::new(file);
-
-        for line in buf_reader.lines() {
-            let line = line?;
-
-            let columns: Vec<&str> = line.split_whitespace().collect();
-
-            if columns[0].starts_with(&self.match_string) {
-                if self.ret_col > columns.len() {
-                    return Err(StatProcessorError::ValueNotFound);
-                } else {
-                    return Ok(columns[self.ret_col - 1].parse::<usize>()?);
-                }
-            }
-        }
-
-        Err(StatProcessorError::ValueNotFound)
-    }
-}
-
-struct CountProcessor {
-    file: String,
-}
-
-impl CountProcessor {
-    fn new(file: &str) -> Self {
-        Self {
-            file: file.into(),
-        }
-    }
-}
-
-impl StatProcessor for CountProcessor {
-    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError> {
-        let mut path = path.clone();
-        path.push(&self.file);
-
-        let file = File::open(path)?;
-
-        let buf_reader = io::BufReader::new(file);
-
-        Ok(buf_reader.lines().count())
-    }
 }
