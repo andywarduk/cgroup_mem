@@ -2,7 +2,6 @@ mod cgroup;
 
 use std::{
     io,
-    mem,
     time::{Instant, Duration},
 };
 
@@ -25,6 +24,7 @@ use super::Scene;
 
 pub struct CGroupTreeScene<'a> {
     debug: bool,
+    cgroups: Vec<CGroup>,
     tree_items: Vec<TreeItem<'a>>,
     tree_state: TreeState,
     next_refresh: Instant,
@@ -37,6 +37,7 @@ impl<'a> CGroupTreeScene<'a> {
     pub fn new(debug: bool) -> Self {
         Self {
             debug,
+            cgroups: Vec::new(),
             tree_items: Vec::new(),
             tree_state: TreeState::default(),
             next_refresh: Instant::now(),
@@ -51,13 +52,12 @@ impl<'a> CGroupTreeScene<'a> {
         self.next_refresh.checked_duration_since(Instant::now())
     }
 
-    fn build_tree_level(cgroups: Vec<CGroup>) -> Vec<TreeItem<'a>> {
+    fn build_tree_level(cgroups: &Vec<CGroup>) -> Vec<TreeItem<'a>> {
         let mut tree_items = Vec::with_capacity(cgroups.len());
 
-        for mut cg in cgroups {
-            let items = mem::take(&mut cg.take_children());
+        for cg in cgroups {
             let text: Text = cg.into();
-            let sub_nodes = Self::build_tree_level(items);
+            let sub_nodes = Self::build_tree_level(cg.children());
             tree_items.push(TreeItem::new(text, sub_nodes));
         }
 
@@ -67,12 +67,11 @@ impl<'a> CGroupTreeScene<'a> {
     /// Build tree
     fn build_tree(&mut self) {
         // Load cgroup information
-        let cgroups = load_cgroups(self.sort);
+        self.cgroups = load_cgroups(self.sort);
+        self.loads += 1;
 
         // Build tree items
-        self.tree_items = Self::build_tree_level(cgroups);
-
-        self.loads += 1;
+        self.tree_items = Self::build_tree_level(&self.cgroups);
     }
 
     fn frame_title(&self, base: &str) -> String {

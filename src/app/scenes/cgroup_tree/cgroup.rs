@@ -1,7 +1,6 @@
 use std::{
     fs::File,
     io::{self, BufRead},
-    mem::take,
     path::PathBuf,
 };
 
@@ -37,13 +36,13 @@ impl CGroup {
         }
     }
 
-    pub fn take_children(&mut self) -> Vec<CGroup> {
-        take(&mut self.children)
+    pub fn children(&self) -> &Vec<CGroup> {
+        &self.children
     }
 }
 
-impl<'a> From<CGroup> for Text<'a> {
-    fn from(cgroup: CGroup) -> Self {
+impl<'a> From<&CGroup> for Text<'a> {
+    fn from(cgroup: &CGroup) -> Self {
         let pathstr: String = cgroup.path
             .file_name()
             .unwrap()
@@ -52,12 +51,12 @@ impl<'a> From<CGroup> for Text<'a> {
 
         let path = Span::styled(pathstr, Style::default().add_modifier(Modifier::BOLD));
 
-        Text::from(Spans::from(match cgroup.error {
+        Text::from(Spans::from(match &cgroup.error {
             Some(msg) => {
                 vec![
                     path,
                     Span::raw(": "),
-                    Span::styled(msg, Style::default().fg(Color::Red)),
+                    Span::styled(msg.clone(), Style::default().fg(Color::Red)),
                 ]
             }
             None => {
