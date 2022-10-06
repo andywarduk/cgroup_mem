@@ -1,12 +1,13 @@
 use std::{
+    fs::File,
     io::{self, BufRead},
+    mem::take,
     path::PathBuf,
-    fs::File, mem::take,
 };
 
 use tui::{
-    text::{Text, Span, Spans},
-    style::{Style, Modifier, Color},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans, Text},
 };
 
 #[derive(Clone)]
@@ -85,7 +86,7 @@ pub fn load_cgroups(sort: SortOrder) -> Vec<CGroup> {
 
     match load_cgroup_rec(path_buf, &root, sort) {
         Ok(cgroup) => cgroup.children,
-        Err(e) => vec![CGroup::new_error(root, e.to_string()) ]
+        Err(e) => vec![CGroup::new_error(root, e.to_string())],
     }
 }
 
@@ -100,12 +101,10 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder) -> io
 
             if fname == *"memory.current" {
                 match get_file_line(&file.path()) {
-                    Ok(line) => {
-                        match line.parse::<usize>() {
-                            Ok(mem) => cgroup.memory = mem,
-                            Err(e) => cgroup.error = Some(e.to_string()),
-                        }
-                    }
+                    Ok(line) => match line.parse::<usize>() {
+                        Ok(mem) => cgroup.memory = mem,
+                        Err(e) => cgroup.error = Some(e.to_string()),
+                    },
                     Err(e) => cgroup.error = Some(e.to_string()),
                 }
             }
@@ -117,7 +116,9 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder) -> io
 
                     match load_cgroup_rec(file.path(), &sub_rel_path, sort) {
                         Ok(sub_cgroup) => cgroup.children.push(sub_cgroup),
-                        Err(e) => cgroup.children.push(CGroup::new_error(sub_rel_path, e.to_string()))
+                        Err(e) => cgroup
+                            .children
+                            .push(CGroup::new_error(sub_rel_path, e.to_string())),
                     }
                 }
             }
@@ -148,8 +149,15 @@ fn get_file_line(path: &PathBuf) -> io::Result<String> {
 }
 
 const POWERS: [&str; 7] = ["b", "k", "M", "G", "T", "P", "E"];
-const STYLES: [Color; 7] = [Color::LightGreen, Color::LightBlue, Color::LightYellow,
-    Color::LightRed, Color::LightRed, Color::LightRed, Color::LightRed];
+const COLOURS: [Color; 7] = [
+    Color::LightGreen,
+    Color::LightBlue,
+    Color::LightYellow,
+    Color::LightRed,
+    Color::LightRed,
+    Color::LightRed,
+    Color::LightRed,
+];
 
 fn format_size(size: usize) -> Vec<Span<'static>> {
     let mut fsize = size as f64;
@@ -160,7 +168,7 @@ fn format_size(size: usize) -> Vec<Span<'static>> {
         fsize /= 1024_f64;
     }
 
-    let style = Style::default().fg(STYLES[power]);
+    let style = Style::default().fg(COLOURS[power]);
 
     let dp = if power <= 1 {
         0

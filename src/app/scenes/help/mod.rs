@@ -3,14 +3,14 @@ use std::io;
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 
 use tui::{
-    text::{Spans, Span},
-    style::{Style, Color},
-    widgets::{Paragraph, Block, Borders}
+    style::{Color, Style},
+    text::{Span, Spans},
+    widgets::{Block, Borders, Paragraph},
 };
 
 use crate::{
+    app::{AppScene, PollResult},
     TermType,
-    app::{PollResult, AppScene}
 };
 
 use super::Scene;
@@ -21,9 +21,7 @@ pub struct HelpScene {
 
 impl HelpScene {
     pub fn new(_debug: bool) -> Self {
-        Self {
-            help_scroll: 0,
-        }
+        Self { help_scroll: 0 }
     }
 
     fn scroll_help_up(&mut self) -> PollResult {
@@ -46,8 +44,8 @@ impl HelpScene {
 }
 
 impl Scene for HelpScene {
-    fn reload(&mut self) {
-    }
+    /// Reloads the help scene
+    fn reload(&mut self) {}
 
     /// Draws the help scene
     fn draw(&mut self, terminal: &mut TermType) -> Result<(), io::Error> {
@@ -81,6 +79,8 @@ impl Scene for HelpScene {
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
             add_key(&mut text, "n".into(), "Sort by cgroup name. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "s".into(), "Sort by cgroup memory usage. Pressing again toggles ascending / descending sort order.".into());
+            add_key(&mut text, "c".into(), "Collapse all expanded nodes.".into());
+            add_key(&mut text, "r".into(), "Refresh the list.".into());
             add_key(&mut text, "h".into(), "Shows this help screen.".into());
             add_key(&mut text, "Esc / q".into(), "Exit the program.".into());
 
@@ -98,7 +98,8 @@ impl Scene for HelpScene {
 
         Ok(())
     }
-    
+
+    /// Event poll loop
     fn poll(&mut self) -> Result<PollResult, io::Error> {
         let mut result = PollResult::None;
 
@@ -112,7 +113,7 @@ impl Scene for HelpScene {
                         }
                         KeyCode::Down => self.scroll_help_down(),
                         KeyCode::Up => self.scroll_help_up(),
-                        _ => PollResult::None
+                        _ => PollResult::None,
                     }
                 }
                 Event::Mouse(mouse_event) => {
@@ -120,7 +121,7 @@ impl Scene for HelpScene {
                     match mouse_event.kind {
                         MouseEventKind::ScrollDown => self.scroll_help_down(),
                         MouseEventKind::ScrollUp => self.scroll_help_up(),
-                        _ => PollResult::None
+                        _ => PollResult::None,
                     }
                 }
                 Event::Resize(_, _) => {
@@ -136,5 +137,4 @@ impl Scene for HelpScene {
 
         Ok(result)
     }
-
 }

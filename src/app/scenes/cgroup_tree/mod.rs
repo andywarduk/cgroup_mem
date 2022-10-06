@@ -1,17 +1,25 @@
 mod cgroup;
 
 use std::{
+    io,
+    mem,
     time::{Instant, Duration},
-    mem, io
 };
 
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
-use tui::{text::Text, style::{Modifier, Style}, widgets::{Borders, Block}};
-use tui_tree_widget::{TreeItem, TreeState, Tree};
+use tui::{
+    style::{Modifier, Style},
+    text::Text,
+    widgets::{Block, Borders},
+};
+use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use cgroup::{SortOrder, CGroup, load_cgroups};
+use cgroup::{load_cgroups, CGroup, SortOrder};
 
-use crate::{app::{PollResult, AppScene}, TermType};
+use crate::{
+    app::{AppScene, PollResult},
+    TermType,
+};
 
 use super::Scene;
 
@@ -87,7 +95,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
         // Calculate next refresh time
         self.next_refresh = Instant::now().checked_add(Duration::from_secs(5)).unwrap();
     }
-    
+
     /// Draws the cgroup tree scene
     fn draw(&mut self, terminal: &mut TermType) -> Result<(), io::Error> {
         self.draws += 1;
@@ -150,6 +158,11 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                     self.tree_state.select_last(&self.tree_items);
                                     PollResult::Redraw
                                 }
+                                KeyCode::Char('c') => {
+                                    self.tree_state.close_all();
+                                    PollResult::Redraw
+                                }
+                                KeyCode::Char('r') => PollResult::Reload,
                                 KeyCode::Char('n') => {
                                     match self.sort {
                                         SortOrder::NameAsc => self.sort = SortOrder::NameDsc,
@@ -164,10 +177,8 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                     }
                                     PollResult::Reload
                                 }
-                                KeyCode::Char('h') => {
-                                    PollResult::Scene(AppScene::Help)
-                                }
-                                _ => PollResult::None
+                                KeyCode::Char('h') => PollResult::Scene(AppScene::Help),
+                                _ => PollResult::None,
                             }
                         }
                         Event::Mouse(mouse_event) => {
@@ -181,7 +192,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                     self.tree_state.key_up(&self.tree_items);
                                     PollResult::Redraw
                                 }
-                                _ => PollResult::None
+                                _ => PollResult::None,
                             }
                         }
                         Event::Resize(_, _) => {
@@ -196,7 +207,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                 } else {
                     // No event in the timeout period
                     PollResult::Reload
-                } 
+                }
             } else {
                 // No time left
                 PollResult::Reload

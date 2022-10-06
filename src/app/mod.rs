@@ -4,9 +4,9 @@ use std::io;
 
 use super::TermType;
 
-use scenes::Scene;
 use scenes::cgroup_tree::CGroupTreeScene;
 use scenes::help::HelpScene;
+use scenes::Scene;
 
 #[derive(PartialEq, Eq)]
 pub enum PollResult {
@@ -20,14 +20,14 @@ pub enum PollResult {
 #[derive(PartialEq, Eq)]
 pub enum AppScene {
     CGroupTree,
-    Help
+    Help,
 }
 
 pub struct App<'a> {
     scene: AppScene,
     terminal: &'a mut TermType,
-    cgroup_tree_scene: Box<dyn Scene>,
-    help_scene: Box<dyn Scene>,
+    cgroup_tree_scene: Box<CGroupTreeScene<'a>>,
+    help_scene: Box<HelpScene>,
 }
 
 impl<'a> App<'a> {
@@ -42,11 +42,11 @@ impl<'a> App<'a> {
     }
 
     /// Main application loop
-    pub fn run(&mut self) -> Result<(), io::Error> {
+    pub fn run(&'a mut self) -> Result<(), io::Error> {
         let mut reload = true;
 
         loop {
-            let scene = match self.scene {
+            let scene: &mut dyn Scene = match self.scene {
                 AppScene::CGroupTree => &mut *self.cgroup_tree_scene,
                 AppScene::Help => &mut *self.help_scene,
             };
@@ -55,20 +55,23 @@ impl<'a> App<'a> {
                 scene.reload();
                 reload = false;
             }
-            
+
             // Draw the scene
-            scene.draw(&mut self.terminal)?;
-    
+            scene.draw(self.terminal)?;
+
             // Poll events
             match scene.poll()? {
                 PollResult::Exit => break,
                 PollResult::Redraw => (),
                 PollResult::Reload => reload = true,
-                PollResult::Scene(s) => { self.scene = s; reload = true },
+                PollResult::Scene(s) => {
+                    self.scene = s;
+                    reload = true
+                }
                 PollResult::None => unreachable!(),
             }
         }
-    
+
         Ok(())
     }
 }

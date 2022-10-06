@@ -1,7 +1,7 @@
 use std::io;
 
-use crate::TermType;
 use super::PollResult;
+use crate::TermType;
 
 pub mod cgroup_tree;
 pub mod help;
