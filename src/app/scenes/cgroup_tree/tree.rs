@@ -8,7 +8,7 @@ use tui::{
 };
 use tui_tree_widget::{TreeItem, TreeState, Tree};
 
-use super::cgroup::{CGroup, load_cgroups, SortOrder};
+use crate::cgroup::{CGroup, SortOrder, load_cgroups};
 
 #[derive(Default)]
 pub struct CGroupTree<'a> {
@@ -19,9 +19,9 @@ pub struct CGroupTree<'a> {
 
 impl<'a> CGroupTree<'a> {
     /// Build tree
-    pub fn build_tree(&mut self, sort: SortOrder) {
+    pub fn build_tree(&mut self, stat: &str, sort: SortOrder) {
         // Load cgroup information
-        self.cgroups = load_cgroups(sort);
+        self.cgroups = load_cgroups(stat, sort);
 
         // Build tree items
         self.items = Self::build_tree_level(&self.cgroups);

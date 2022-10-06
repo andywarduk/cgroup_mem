@@ -78,9 +78,10 @@ impl Scene for HelpScene {
             add_key(&mut text, "Home".into(), "Move selection to the top.".into());
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
             add_key(&mut text, "n".into(), "Sort by cgroup name. Pressing again toggles ascending / descending sort order.".into());
-            add_key(&mut text, "s".into(), "Sort by cgroup memory usage. Pressing again toggles ascending / descending sort order.".into());
+            add_key(&mut text, "s".into(), "Sort by memory usage. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "c".into(), "Collapse all expanded nodes.".into());
             add_key(&mut text, "r".into(), "Refresh the list.".into());
+            add_key(&mut text, "z".into(), "Select statistic to show.".into());
             add_key(&mut text, "h".into(), "Shows this help screen.".into());
             add_key(&mut text, "Esc / q".into(), "Exit the program.".into());
 

@@ -1,4 +1,3 @@
-mod cgroup;
 mod tree;
 
 use std::{
@@ -9,11 +8,9 @@ use std::{
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 use tui::widgets::{Block, Borders};
 
-use cgroup::SortOrder;
-
 use crate::{
     app::{AppScene, PollResult},
-    TermType,
+    TermType, cgroup::{SortOrder, stats::STATS},
 };
 
 use self::tree::CGroupTree;
@@ -27,6 +24,7 @@ pub struct CGroupTreeScene<'a> {
     draws: usize,
     loads: usize,
     sort: SortOrder,
+    stat: usize,
 }
 
 impl<'a> CGroupTreeScene<'a> {
@@ -39,30 +37,25 @@ impl<'a> CGroupTreeScene<'a> {
             draws: 0,
             loads: 0,
             sort: SortOrder::NameAsc,
+            stat: 0,
         }
+    }
+
+    /// Sets the statistic to view
+    pub fn set_stat(&mut self, stat: usize) {
+        self.stat = stat
     }
 
     /// Calculates the time left before the details should be reloaded, None returned if overdue
     fn time_to_refresh(&self) -> Option<Duration> {
         self.next_refresh.checked_duration_since(Instant::now())
     }
-
-    fn frame_title(&self, base: &str) -> String {
-        // Build block title
-        let mut title = base.to_string();
-
-        if self.debug {
-            title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
-        }
-
-        title
-    }
 }
 
 impl<'a> Scene for CGroupTreeScene<'a> {
     fn reload(&mut self) {
         // Build the tree
-        self.tree.build_tree(self.sort);
+        self.tree.build_tree(STATS[self.stat].def(), self.sort);
         self.loads += 1;
 
         // Calculate next refresh time
@@ -73,7 +66,12 @@ impl<'a> Scene for CGroupTreeScene<'a> {
     fn draw(&mut self, terminal: &mut TermType) -> Result<(), io::Error> {
         self.draws += 1;
 
-        let title = self.frame_title("CGroup Memory Usage (press 'h' for help)");
+        // Build block title
+        let mut title = format!("CGroup {} Memory Usage (press 'h' for help)", STATS[self.stat].short_desc());
+
+        if self.debug {
+            title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
+        }
 
         terminal.draw(|f| {
             // Create the block
@@ -142,10 +140,12 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                     }
                                     PollResult::Reload
                                 }
-                                KeyCode::Char('p') => {
-                                    println!("{:?}", self.tree.cgroup());
-                                    PollResult::None
-                                }
+                                // TODO
+                                // KeyCode::Char('p') => {
+                                //     println!("{:?}", self.tree.cgroup());
+                                //     PollResult::None
+                                // }
+                                KeyCode::Char('z') => PollResult::Scene(AppScene::StatChoose),
                                 KeyCode::Char('h') => PollResult::Scene(AppScene::Help),
                                 _ => PollResult::None,
                             }

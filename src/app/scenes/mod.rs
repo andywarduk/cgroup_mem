@@ -4,6 +4,7 @@ use super::PollResult;
 use crate::TermType;
 
 pub mod cgroup_tree;
+pub mod stat_choose;
 pub mod help;
 
 pub trait Scene {
