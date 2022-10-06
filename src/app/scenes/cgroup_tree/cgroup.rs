@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufRead},
+    iter::successors,
     path::PathBuf,
 };
 
@@ -9,7 +10,7 @@ use tui::{
     text::{Span, Spans, Text},
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct CGroup {
     path: PathBuf,
     error: Option<String>,
@@ -169,11 +170,8 @@ fn format_size(size: usize) -> Vec<Span<'static>> {
 
     let style = Style::default().fg(COLOURS[power]);
 
-    let dp = if power <= 1 {
-        0
-    } else {
-        4 - (fsize.log10().ceil() as usize)
-    };
+    let digits = successors(Some(fsize), |&n| (n >= 10_f64).then_some(n / 10_f64)).count();
+    let dp = 4 - digits;
 
     vec![Span::styled(format!("{:>5.*} {}", dp, fsize, POWERS[power]), style)]
 }

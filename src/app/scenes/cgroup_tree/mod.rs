@@ -1,4 +1,5 @@
 mod cgroup;
+mod tree;
 
 use std::{
     io,
@@ -6,27 +7,22 @@ use std::{
 };
 
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
-use tui::{
-    style::{Modifier, Style},
-    text::Text,
-    widgets::{Block, Borders},
-};
-use tui_tree_widget::{Tree, TreeItem, TreeState};
+use tui::widgets::{Block, Borders};
 
-use cgroup::{load_cgroups, CGroup, SortOrder};
+use cgroup::SortOrder;
 
 use crate::{
     app::{AppScene, PollResult},
     TermType,
 };
 
+use self::tree::CGroupTree;
+
 use super::Scene;
 
 pub struct CGroupTreeScene<'a> {
     debug: bool,
-    cgroups: Vec<CGroup>,
-    tree_items: Vec<TreeItem<'a>>,
-    tree_state: TreeState,
+    tree: CGroupTree<'a>,
     next_refresh: Instant,
     draws: usize,
     loads: usize,
@@ -34,12 +30,11 @@ pub struct CGroupTreeScene<'a> {
 }
 
 impl<'a> CGroupTreeScene<'a> {
+    /// Creates a new cgroup tree scene
     pub fn new(debug: bool) -> Self {
         Self {
             debug,
-            cgroups: Vec::new(),
-            tree_items: Vec::new(),
-            tree_state: TreeState::default(),
+            tree: Default::default(),
             next_refresh: Instant::now(),
             draws: 0,
             loads: 0,
@@ -52,34 +47,12 @@ impl<'a> CGroupTreeScene<'a> {
         self.next_refresh.checked_duration_since(Instant::now())
     }
 
-    fn build_tree_level(cgroups: &Vec<CGroup>) -> Vec<TreeItem<'a>> {
-        let mut tree_items = Vec::with_capacity(cgroups.len());
-
-        for cg in cgroups {
-            let text: Text = cg.into();
-            let sub_nodes = Self::build_tree_level(cg.children());
-            tree_items.push(TreeItem::new(text, sub_nodes));
-        }
-
-        tree_items
-    }
-
-    /// Build tree
-    fn build_tree(&mut self) {
-        // Load cgroup information
-        self.cgroups = load_cgroups(self.sort);
-        self.loads += 1;
-
-        // Build tree items
-        self.tree_items = Self::build_tree_level(&self.cgroups);
-    }
-
     fn frame_title(&self, base: &str) -> String {
         // Build block title
         let mut title = base.to_string();
 
         if self.debug {
-            title += &format!(" ({} loads, {} draws)", self.loads, self.draws);
+            title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
         }
 
         title
@@ -89,7 +62,8 @@ impl<'a> CGroupTreeScene<'a> {
 impl<'a> Scene for CGroupTreeScene<'a> {
     fn reload(&mut self) {
         // Build the tree
-        self.build_tree();
+        self.tree.build_tree(self.sort);
+        self.loads += 1;
 
         // Calculate next refresh time
         self.next_refresh = Instant::now().checked_add(Duration::from_secs(5)).unwrap();
@@ -102,21 +76,13 @@ impl<'a> Scene for CGroupTreeScene<'a> {
         let title = self.frame_title("CGroup Memory Usage (press 'h' for help)");
 
         terminal.draw(|f| {
-            // Get the size of the frame
-            let size = f.size();
-
             // Create the block
             let block = Block::default()
                 .title(title)
                 .borders(Borders::ALL);
 
             // Create the tree
-            let tree = Tree::new(self.tree_items.clone())
-                .block(block)
-                .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
-
-            // Draw the tree
-            f.render_stateful_widget(tree, size, &mut self.tree_state);
+            self.tree.render(f, block);
         })?;
 
         Ok(())
@@ -134,31 +100,31 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                             match key_event.code {
                                 KeyCode::Char('q') | KeyCode::Esc => PollResult::Exit,
                                 KeyCode::Left => {
-                                    self.tree_state.key_left();
+                                    self.tree.left();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Right => {
-                                    self.tree_state.key_right();
+                                    self.tree.right();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Down => {
-                                    self.tree_state.key_down(&self.tree_items);
+                                    self.tree.down();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Up => {
-                                    self.tree_state.key_up(&self.tree_items);
+                                    self.tree.up();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Home => {
-                                    self.tree_state.select_first();
+                                    self.tree.first();
                                     PollResult::Redraw
                                 }
                                 KeyCode::End => {
-                                    self.tree_state.select_last(&self.tree_items);
+                                    self.tree.last();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Char('c') => {
-                                    self.tree_state.close_all();
+                                    self.tree.close_all();
                                     PollResult::Redraw
                                 }
                                 KeyCode::Char('r') => PollResult::Reload,
@@ -176,6 +142,10 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                     }
                                     PollResult::Reload
                                 }
+                                KeyCode::Char('p') => {
+                                    println!("{:?}", self.tree.cgroup());
+                                    PollResult::None
+                                }
                                 KeyCode::Char('h') => PollResult::Scene(AppScene::Help),
                                 _ => PollResult::None,
                             }
@@ -184,13 +154,17 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                             // Mouse event
                             match mouse_event.kind {
                                 MouseEventKind::ScrollDown => {
-                                    self.tree_state.key_down(&self.tree_items);
+                                    self.tree.down();
                                     PollResult::Redraw
                                 }
                                 MouseEventKind::ScrollUp => {
-                                    self.tree_state.key_up(&self.tree_items);
+                                    self.tree.up();
                                     PollResult::Redraw
                                 }
+                                // TODO MouseEventKind::Up() => {
+                                //     mouse_event.column
+                                //     mouse_event.row
+                                // }
                                 _ => PollResult::None,
                             }
                         }
