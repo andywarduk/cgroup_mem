@@ -2,6 +2,7 @@
 
 mod app;
 mod cgroup;
+mod formatters;
 
 use std::io;
 

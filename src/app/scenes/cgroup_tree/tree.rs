@@ -1,14 +1,14 @@
 use std::io::Stdout;
 
 use tui::{
-    text::Text,
+    text::{Text, Span, Spans},
     backend::CrosstermBackend,
     Frame, widgets::Block,
-    style::{Modifier, Style}
+    style::{Modifier, Style, Color}
 };
 use tui_tree_widget::{TreeItem, TreeState, Tree};
 
-use crate::cgroup::{CGroup, SortOrder, load_cgroups};
+use crate::{cgroup::{CGroup, SortOrder, load_cgroups, stats::{STATS, StatType}}, formatters::{format_mem_qty, format_qty}};
 
 #[derive(Default)]
 pub struct CGroupTree<'a> {
@@ -19,24 +19,58 @@ pub struct CGroupTree<'a> {
 
 impl<'a> CGroupTree<'a> {
     /// Build tree
-    pub fn build_tree(&mut self, stat: &str, sort: SortOrder) {
+    pub fn build_tree(&mut self, stat: usize, sort: SortOrder) {
         // Load cgroup information
         self.cgroups = load_cgroups(stat, sort);
 
         // Build tree items
-        self.items = Self::build_tree_level(&self.cgroups);
+        self.items = Self::build_tree_level(&self.cgroups, stat);
     }
 
-    fn build_tree_level(cgroups: &Vec<CGroup>) -> Vec<TreeItem<'a>> {
+    fn build_tree_level(cgroups: &Vec<CGroup>, stat: usize) -> Vec<TreeItem<'a>> {
         let mut tree_items = Vec::with_capacity(cgroups.len());
 
         for cg in cgroups {
-            let text: Text = cg.into();
-            let sub_nodes = Self::build_tree_level(cg.children());
+            let text: Text = Self::cgroup_text(cg, stat);
+            let sub_nodes = Self::build_tree_level(cg.children(), stat);
             tree_items.push(TreeItem::new(text, sub_nodes));
         }
 
         tree_items
+    }
+
+    fn cgroup_text(cgroup: &CGroup, stat: usize) -> Text<'a> {
+        let filename = cgroup.path().file_name();
+
+        // Get path as a string
+        let pathstr = match filename {
+            Some(f) => {
+                f.to_string_lossy().clone().into()
+            }
+            None => "/".to_string(),
+        };
+
+        // Make it bold
+        let path = Span::styled(pathstr, Style::default().add_modifier(Modifier::BOLD));
+
+        Text::from(Spans::from(match cgroup.error() {
+            Some(msg) => {
+                vec![
+                    path,
+                    Span::raw(": "),
+                    Span::styled(msg.clone(), Style::default().fg(Color::Red)),
+                ]
+            }
+            None => {
+                let mut spans = match STATS[stat].stat_type() {
+                    StatType::MemQtyCumul => format_mem_qty(cgroup.stat()),
+                    StatType::Qty => format_qty(cgroup.stat()),
+                };
+                spans.push(Span::raw(": "));
+                spans.push(path);
+                spans
+            }
+        }))
     }
 
     pub fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, block: Block) {

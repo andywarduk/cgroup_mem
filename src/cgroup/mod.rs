@@ -3,14 +3,10 @@ pub mod stats;
 use std::{
     fs::File,
     io::{self, BufRead},
-    iter::successors,
     path::PathBuf, num::ParseIntError, fmt::Display,
 };
 
-use tui::{
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-};
+use self::stats::{STATS, StatType};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -39,39 +35,20 @@ impl CGroup {
         }
     }
 
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn stat(&self) -> usize {
+        self.stat
+    }
+
     pub fn children(&self) -> &Vec<CGroup> {
         &self.children
     }
-}
 
-impl<'a> From<&CGroup> for Text<'a> {
-    fn from(cgroup: &CGroup) -> Self {
-        let filename = cgroup.path.file_name();
-
-        let pathstr = match filename {
-            Some(f) => {
-                f.to_string_lossy().into()
-            }
-            None => "/".to_string(),
-        };
-
-        let path = Span::styled(pathstr, Style::default().add_modifier(Modifier::BOLD));
-
-        Text::from(Spans::from(match &cgroup.error {
-            Some(msg) => {
-                vec![
-                    path,
-                    Span::raw(": "),
-                    Span::styled(msg.clone(), Style::default().fg(Color::Red)),
-                ]
-            }
-            None => {
-                let mut spans = format_size(cgroup.stat);
-                spans.push(Span::raw(": "));
-                spans.push(path);
-                spans
-            }
-        }))
+    pub fn error(&self) -> &Option<String> {
+        &self.error
     }
 }
 
@@ -83,7 +60,7 @@ pub enum SortOrder {
     SizeDsc,
 }
 
-pub fn load_cgroups(stat: &str, sort: SortOrder) -> Vec<CGroup> {
+pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
     let mut path_buf = PathBuf::new();
     path_buf.push("/sys/fs/cgroup");
 
@@ -91,7 +68,7 @@ pub fn load_cgroups(stat: &str, sort: SortOrder) -> Vec<CGroup> {
 
     let processor = get_stat_processor(stat);
 
-    match load_cgroup_rec(path_buf, &root, sort, &*processor) {
+    match load_cgroup_rec(path_buf, &root, sort, stat, &*processor) {
         Ok(cgroup) => {
             if cgroup.stat == 0 {
                 cgroup.children
@@ -103,7 +80,7 @@ pub fn load_cgroups(stat: &str, sort: SortOrder) -> Vec<CGroup> {
     }
 }
 
-fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, processor: &dyn StatProcessor) -> io::Result<CGroup> {
+fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat: usize, processor: &dyn StatProcessor) -> io::Result<CGroup> {
     let mut cgroup = CGroup::new(rel_path.clone());
 
     // Recurse in to sub directories first
@@ -118,7 +95,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, proce
                     let mut sub_rel_path = rel_path.clone();
                     sub_rel_path.push(fname);
 
-                    match load_cgroup_rec(file.path(), &sub_rel_path, sort, processor) {
+                    match load_cgroup_rec(file.path(), &sub_rel_path, sort, stat, processor) {
                         Ok(sub_cgroup) => cgroup.children.push(sub_cgroup),
                         Err(e) => cgroup
                             .children
@@ -135,16 +112,39 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, proce
         Err(e) => cgroup.error = Some(e.to_string()),
     }
 
-    if !cgroup.children.is_empty() {
-        // Add a <self> node for difference in memory between the sum of the children and this
-        let child_sum: usize = cgroup.children.iter().map(|c| c.stat).sum();
-        
-        if child_sum < cgroup.stat {
-            let mut sub_rel_path = rel_path.clone();
-            sub_rel_path.push("<self>");
-            let mut cg_self = CGroup::new(sub_rel_path);
-            cg_self.stat = cgroup.stat - child_sum;
-            cgroup.children.push(cg_self);
+    match STATS[stat].stat_type() {
+        StatType::Qty => {
+            // Non-cumulative quantity
+            let child_sum: usize = cgroup.children.iter().map(|c| c.stat).sum();
+
+            if child_sum > 0 {
+                if cgroup.stat > 0 {
+                    // Add self quantity
+                    let mut sub_rel_path = rel_path.clone();
+                    sub_rel_path.push("<self>");
+                    let mut cg_self = CGroup::new(sub_rel_path);
+                    cg_self.stat = cgroup.stat;
+                    cgroup.children.push(cg_self);
+                }
+
+                cgroup.stat += child_sum;
+            }
+        }
+        StatType::MemQtyCumul => {
+            // Cumulative quantity
+            if !cgroup.children.is_empty() {
+                // Add a <self> node for difference in memory between the sum of the children and this
+                let child_sum: usize = cgroup.children.iter().map(|c| c.stat).sum();
+                
+                if child_sum < cgroup.stat {
+                    // Add self quantity
+                    let mut sub_rel_path = rel_path.clone();
+                    sub_rel_path.push("<self>");
+                    let mut cg_self = CGroup::new(sub_rel_path);
+                    cg_self.stat = cgroup.stat - child_sum;
+                    cgroup.children.push(cg_self);
+                }
+            }        
         }
     }
 
@@ -191,13 +191,15 @@ trait StatProcessor {
     fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError>;
 }
 
-fn get_stat_processor(stat: &str) -> Box<dyn StatProcessor> {
-    let split: Vec<&str> = stat.split('/').collect();
+fn get_stat_processor(stat: usize) -> Box<dyn StatProcessor> {
+    let split: Vec<&str> = STATS[stat].def().split('/').collect();
 
     let result: Box<dyn StatProcessor> = if split.len() == 1 {
         Box::new(SingleValueProcessor::new(split[0]))
     } else if split.len() == 3 && split[1].starts_with('=') {
         Box::new(KeyedProcessor::new(split[0], &split[1][1..], split[2]))
+    } else if split.len() == 2 && split[1] == "#" {
+        Box::new(CountProcessor::new(split[0]))
     } else {
         panic!("Unrecognised stat processor {}", stat);
     };
@@ -278,34 +280,27 @@ impl StatProcessor for KeyedProcessor {
     }
 }
 
-const POWERS: [&str; 7] = ["b", "k", "M", "G", "T", "P", "E"];
-const COLOURS: [Color; 7] = [
-    Color::LightGreen,
-    Color::LightBlue,
-    Color::LightYellow,
-    Color::LightRed,
-    Color::LightRed,
-    Color::LightRed,
-    Color::LightRed,
-];
+struct CountProcessor {
+    file: String,
+}
 
-fn format_size(size: usize) -> Vec<Span<'static>> {
-    let mut fsize = size as f64;
-    let mut power = 0;
-
-    while power < 6 && fsize >= 1024_f64 {
-        power += 1;
-        fsize /= 1024_f64;
+impl CountProcessor {
+    fn new(file: &str) -> Self {
+        Self {
+            file: file.into(),
+        }
     }
+}
 
-    let style = Style::default().fg(COLOURS[power]);
+impl StatProcessor for CountProcessor {
+    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError> {
+        let mut path = path.clone();
+        path.push(&self.file);
 
-    let dp = if power > 1 {
-        let digits = successors(Some(fsize), |&n| (n >= 10_f64).then_some(n / 10_f64)).count();
-        4 - digits
-    } else {
-        0
-    };
+        let file = File::open(path)?;
 
-    vec![Span::styled(format!("{:>5.*} {}", dp, fsize, POWERS[power]), style)]
+        let buf_reader = io::BufReader::new(file);
+
+        Ok(buf_reader.lines().count())
+    }
 }

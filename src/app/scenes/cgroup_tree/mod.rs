@@ -10,7 +10,7 @@ use tui::widgets::{Block, Borders};
 
 use crate::{
     app::{AppScene, PollResult},
-    TermType, cgroup::{SortOrder, stats::STATS},
+    TermType, cgroup::{SortOrder, stats::{STATS, StatType}},
 };
 
 use self::tree::CGroupTree;
@@ -55,7 +55,7 @@ impl<'a> CGroupTreeScene<'a> {
 impl<'a> Scene for CGroupTreeScene<'a> {
     fn reload(&mut self) {
         // Build the tree
-        self.tree.build_tree(STATS[self.stat].def(), self.sort);
+        self.tree.build_tree(self.stat, self.sort);
         self.loads += 1;
 
         // Calculate next refresh time
@@ -67,7 +67,12 @@ impl<'a> Scene for CGroupTreeScene<'a> {
         self.draws += 1;
 
         // Build block title
-        let mut title = format!("CGroup {} Memory Usage (press 'h' for help)", STATS[self.stat].short_desc());
+        let qty_desc = match STATS[self.stat].stat_type() {
+            StatType::MemQtyCumul => "Memory Usage",
+            StatType::Qty => "Count",
+        };
+
+        let mut title = format!("CGroup {} {} (press 'h' for help)", STATS[self.stat].short_desc(), qty_desc);
 
         if self.debug {
             title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
