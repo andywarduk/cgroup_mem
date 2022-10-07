@@ -2,15 +2,19 @@ mod tree;
 
 use std::{
     io,
-    time::{Instant, Duration},
+    time::{Duration, Instant},
 };
 
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 use tui::widgets::{Block, Borders};
 
 use crate::{
-    app::{AppScene, PollResult},
-    TermType, cgroup::{SortOrder, stats::{STATS, StatType}},
+    app::{AppScene, PollResult, SceneChangeParm},
+    cgroup::{
+        stats::{StatType, STATS},
+        SortOrder,
+    },
+    TermType,
 };
 
 use self::tree::CGroupTree;
@@ -44,6 +48,11 @@ impl<'a> CGroupTreeScene<'a> {
     /// Sets the statistic to view
     pub fn set_stat(&mut self, stat: usize) {
         self.stat = stat
+    }
+
+    /// Sets the sort order to use
+    pub fn set_sort(&mut self, sort: SortOrder) {
+        self.sort = sort;
     }
 
     /// Calculates the time left before the details should be reloaded, None returned if overdue
@@ -80,9 +89,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
 
         terminal.draw(|f| {
             // Create the block
-            let block = Block::default()
-                .title(title)
-                .borders(Borders::ALL);
+            let block = Block::default().title(title).borders(Borders::ALL);
 
             // Create the tree
             self.tree.render(f, block);
@@ -132,26 +139,55 @@ impl<'a> Scene for CGroupTreeScene<'a> {
                                 }
                                 KeyCode::Char('r') => PollResult::Reload,
                                 KeyCode::Char('n') => {
-                                    match self.sort {
-                                        SortOrder::NameAsc => self.sort = SortOrder::NameDsc,
-                                        _ => self.sort = SortOrder::NameAsc,
-                                    }
-                                    PollResult::Reload
+                                    let new_sort = match self.sort {
+                                        SortOrder::NameAsc => SortOrder::NameDsc,
+                                        _ => SortOrder::NameAsc,
+                                    };
+
+                                    PollResult::SceneParms(
+                                        AppScene::CGroupTree,
+                                        vec![SceneChangeParm::NewSort(new_sort)],
+                                    )
                                 }
                                 KeyCode::Char('s') => {
-                                    match self.sort {
-                                        SortOrder::SizeAsc => self.sort = SortOrder::SizeDsc,
-                                        _ => self.sort = SortOrder::SizeAsc,
-                                    }
-                                    PollResult::Reload
+                                    let new_sort = match self.sort {
+                                        SortOrder::SizeAsc => SortOrder::SizeDsc,
+                                        _ => SortOrder::SizeAsc,
+                                    };
+
+                                    PollResult::SceneParms(
+                                        AppScene::CGroupTree,
+                                        vec![SceneChangeParm::NewSort(new_sort)],
+                                    )
                                 }
-                                // TODO
-                                // KeyCode::Char('p') => {
-                                //     println!("{:?}", self.tree.cgroup());
-                                //     PollResult::None
-                                // }
+                                KeyCode::Char('p') => {
+                                    if let Some(cgroup) = self.tree.cgroup() {
+                                        PollResult::SceneParms(
+                                            AppScene::Procs,
+                                            vec![
+                                                SceneChangeParm::ProcCGroup(cgroup.path().clone()),
+                                                SceneChangeParm::ProcThreads(false),
+                                            ],
+                                        )
+                                    } else {
+                                        PollResult::None
+                                    }
+                                }
+                                KeyCode::Char('t') => {
+                                    if let Some(cgroup) = self.tree.cgroup() {
+                                        PollResult::SceneParms(
+                                            AppScene::Procs,
+                                            vec![
+                                                SceneChangeParm::ProcCGroup(cgroup.path().clone()),
+                                                SceneChangeParm::ProcThreads(true),
+                                            ],
+                                        )
+                                    } else {
+                                        PollResult::None
+                                    }
+                                }
                                 KeyCode::Char('z') => PollResult::Scene(AppScene::StatChoose),
-                                KeyCode::Char('h') => PollResult::Scene(AppScene::Help),
+                                KeyCode::Char('h') => PollResult::Scene(AppScene::CgroupTreeHelp),
                                 _ => PollResult::None,
                             }
                         }

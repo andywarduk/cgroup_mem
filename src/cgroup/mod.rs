@@ -1,4 +1,3 @@
-mod file_proc;
 pub mod stats;
 
 use std::{
@@ -6,10 +5,9 @@ use std::{
     path::PathBuf,
 };
 
-use self::{
-    stats::{STATS, StatType},
-    file_proc::{StatProcessor, get_stat_processor}
-};
+use crate::file_proc::{FileProcessor, get_file_processor};
+
+use self::stats::{STATS, StatType};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -55,7 +53,7 @@ impl CGroup {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SortOrder {
     NameAsc,
     NameDsc,
@@ -63,27 +61,29 @@ pub enum SortOrder {
     SizeDsc,
 }
 
+pub fn cgroup_fs_path() -> PathBuf {
+    PathBuf::from("/sys/fs/cgroup")
+}
+
 pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
-    let mut path_buf = PathBuf::new();
-    path_buf.push("/sys/fs/cgroup");
+    let abs_path = cgroup_fs_path();
+    let rel_path = PathBuf::new();
 
-    let root = PathBuf::new();
+    let processor = get_file_processor(STATS[stat].def()).unwrap();
 
-    let processor = get_stat_processor(stat);
-
-    match load_cgroup_rec(path_buf, &root, sort, stat, &*processor) {
+    match load_cgroup_rec(abs_path, &rel_path, sort, stat, &*processor) {
         Ok(cgroup) => {
             if cgroup.stat == 0 {
                 cgroup.children
             } else {
                 vec![cgroup]
             }
-        },
-        Err(e) => vec![CGroup::new_error(root, e.to_string())],
+        }
+        Err(e) => vec![CGroup::new_error(rel_path, e.to_string())],
     }
 }
 
-fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat: usize, processor: &dyn StatProcessor) -> io::Result<CGroup> {
+fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat: usize, processor: &dyn FileProcessor) -> io::Result<CGroup> {
     let mut cgroup = CGroup::new(rel_path.clone());
 
     // Recurse in to sub directories first
@@ -138,7 +138,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
             if !cgroup.children.is_empty() {
                 // Add a <self> node for difference in memory between the sum of the children and this
                 let child_sum: usize = cgroup.children.iter().map(|c| c.stat).sum();
-                
+
                 if child_sum < cgroup.stat {
                     // Add self quantity
                     let mut sub_rel_path = rel_path.clone();
@@ -147,7 +147,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
                     cg_self.stat = cgroup.stat - child_sum;
                     cgroup.children.push(cg_self);
                 }
-            }        
+            }
         }
     }
 

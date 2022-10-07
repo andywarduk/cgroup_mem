@@ -1,14 +1,23 @@
 use std::io::Stdout;
 
 use tui::{
-    text::{Text, Span, Spans},
     backend::CrosstermBackend,
-    Frame, widgets::Block,
-    style::{Modifier, Style, Color}
+    style::{Color, Modifier, Style},
+    text::{Span, Spans, Text},
+    widgets::Block,
+    Frame,
 };
-use tui_tree_widget::{TreeItem, TreeState, Tree};
+use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::{cgroup::{CGroup, SortOrder, load_cgroups, stats::{STATS, StatType}}, formatters::{format_mem_qty, format_qty}};
+use crate::{
+    cgroup::{
+        load_cgroups,
+        stats::{StatType, STATS},
+        CGroup,
+        SortOrder,
+    },
+    formatters::{format_mem_qty, format_qty},
+};
 
 #[derive(Default)]
 pub struct CGroupTree<'a> {
@@ -44,9 +53,7 @@ impl<'a> CGroupTree<'a> {
 
         // Get path as a string
         let pathstr = match filename {
-            Some(f) => {
-                f.to_string_lossy().clone().into()
-            }
+            Some(f) => f.to_string_lossy().clone().into(),
             None => "/".to_string(),
         };
 

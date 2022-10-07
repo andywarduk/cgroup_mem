@@ -1,31 +1,39 @@
 use std::{
-    path::PathBuf,
     fs::File,
-    io::{self, BufRead}
+    io::{self, BufRead},
+    path::PathBuf,
 };
 
-use super::{StatProcessor, StatProcessorError};
+use super::{FileProcessor, FileProcessorError};
 
+#[derive(Default)]
 pub struct KeyedProcessor {
-    file: String,
+    file: Option<String>,
     match_string: String,
     ret_col: usize,
 }
 
 impl KeyedProcessor {
-    pub fn new(file: &str, line_start: &str, ret_col: &str) -> Self {
+    pub fn new(line_start: &str, ret_col: &str) -> Self {
         Self {
-            file: file.into(),
+            file: None,
             match_string: line_start.into(),
             ret_col: ret_col.parse::<usize>().unwrap(),
         }
     }
+
+    pub fn set_file(&mut self, file: &str) {
+        self.file = Some(file.to_string())
+    }
 }
 
-impl StatProcessor for KeyedProcessor {
-    fn get_stat(&self, path: &PathBuf) -> Result<usize, StatProcessorError> {
+impl FileProcessor for KeyedProcessor {
+    fn get_value(&self, path: &PathBuf) -> Result<String, FileProcessorError> {
         let mut path = path.clone();
-        path.push(&self.file);
+
+        if let Some(file) = &self.file {
+            path.push(file);
+        }
 
         let file = File::open(path)?;
 
@@ -38,13 +46,13 @@ impl StatProcessor for KeyedProcessor {
 
             if columns[0].starts_with(&self.match_string) {
                 if self.ret_col > columns.len() {
-                    return Err(StatProcessorError::ValueNotFound);
+                    return Err(FileProcessorError::ValueNotFound);
                 } else {
-                    return Ok(columns[self.ret_col - 1].parse::<usize>()?);
+                    return Ok(columns[self.ret_col - 1].to_string());
                 }
             }
         }
 
-        Err(StatProcessorError::ValueNotFound)
+        Err(FileProcessorError::ValueNotFound)
     }
 }

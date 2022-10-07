@@ -15,11 +15,11 @@ use crate::{
 
 use super::Scene;
 
-pub struct HelpScene {
+pub struct ProcsHelpScene {
     help_scroll: u16,
 }
 
-impl HelpScene {
+impl ProcsHelpScene {
     pub fn new(_debug: bool) -> Self {
         Self { help_scroll: 0 }
     }
@@ -43,7 +43,7 @@ impl HelpScene {
     }
 }
 
-impl Scene for HelpScene {
+impl Scene for ProcsHelpScene {
     /// Reloads the help scene
     fn reload(&mut self) {}
 
@@ -68,22 +68,20 @@ impl Scene for HelpScene {
                 ]));
             };
 
-            add_line(&mut text, "Key bindings for cgroup memory display:".into());
+            add_line(&mut text, "Key bindings for process display:".into());
             add_line(&mut text, "".into());
 
             add_key(&mut text, "Up Arrow".into(), "Move selection up.".into());
             add_key(&mut text, "Down Arrow".into(), "Move selection down.".into());
-            add_key(&mut text, "Left Arrow".into(), "Collapse tree node if on a parent node or move to parent otherwise.".into());
-            add_key(&mut text, "Right Arrow".into(), "Expand tree node if on a parent node.".into());
+            add_key(&mut text, "Page Up".into(), "Move selection up a page.".into());
+            add_key(&mut text, "Page Down".into(), "Move selection down a page.".into());
             add_key(&mut text, "Home".into(), "Move selection to the top.".into());
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
-            add_key(&mut text, "n".into(), "Sort by cgroup name. Pressing again toggles ascending / descending sort order.".into());
-            add_key(&mut text, "s".into(), "Sort by memory usage. Pressing again toggles ascending / descending sort order.".into());
-            add_key(&mut text, "c".into(), "Collapse all expanded nodes.".into());
+            add_key(&mut text, "n".into(), "Sort by command. Pressing again toggles ascending / descending sort order.".into());
+            add_key(&mut text, "s".into(), "Sort by memory usage / PID. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "r".into(), "Refresh the list.".into());
-            add_key(&mut text, "z".into(), "Select statistic to show.".into());
             add_key(&mut text, "h".into(), "Shows this help screen.".into());
-            add_key(&mut text, "Esc / q".into(), "Exit the program.".into());
+            add_key(&mut text, "Esc / q".into(), "Exit the window.".into());
 
             add_line(&mut text, "".into());
             add_line(&mut text, "Press q, h or Esc to exit help".into());

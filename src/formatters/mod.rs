@@ -1,6 +1,9 @@
 use std::iter::successors;
 
-use tui::{style::{Color, Style}, text::Span};
+use tui::{
+    style::{Color, Style},
+    text::Span,
+};
 
 const POWERS: [&str; 7] = [" ", "k", "M", "G", "T", "P", "E"];
 const COLOURS: [Color; 7] = [

@@ -2,7 +2,9 @@
 
 mod app;
 mod cgroup;
+mod file_proc;
 mod formatters;
+mod proc;
 
 use std::io;
 

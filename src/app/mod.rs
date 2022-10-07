@@ -1,13 +1,20 @@
 mod scenes;
 
 use std::io;
+use std::path::PathBuf;
+
+use crate::cgroup::SortOrder;
 
 use super::TermType;
 
-use scenes::cgroup_tree::CGroupTreeScene;
-use scenes::stat_choose::StatChooseScene;
-use scenes::help::HelpScene;
-use scenes::Scene;
+use self::scenes::{
+    cgroup_tree::CGroupTreeScene,
+    cgroup_tree_help::CGroupTreeHelpScene,
+    procs::ProcsScene,
+    procs_help::ProcsHelpScene,
+    stat_choose::StatChooseScene,
+    Scene,
+};
 
 #[derive(PartialEq, Eq)]
 pub enum PollResult {
@@ -22,21 +29,28 @@ pub enum PollResult {
 #[derive(PartialEq, Eq)]
 pub enum SceneChangeParm {
     Stat(usize),
+    ProcCGroup(PathBuf),
+    ProcThreads(bool),
+    NewSort(SortOrder),
 }
 
 #[derive(PartialEq, Eq)]
 pub enum AppScene {
     CGroupTree,
+    CgroupTreeHelp,
     StatChoose,
-    Help,
+    Procs,
+    ProcsHelp,
 }
 
 pub struct App<'a> {
     scene: AppScene,
     terminal: &'a mut TermType,
     cgroup_tree_scene: Box<CGroupTreeScene<'a>>,
+    cgroup_tree_help_scene: Box<CGroupTreeHelpScene>,
     stat_choose_scene: Box<StatChooseScene<'a>>,
-    help_scene: Box<HelpScene>,
+    procs_scene: Box<ProcsScene<'a>>,
+    procs_help_scene: Box<ProcsHelpScene>,
 }
 
 impl<'a> App<'a> {
@@ -46,8 +60,10 @@ impl<'a> App<'a> {
             scene: AppScene::CGroupTree,
             terminal,
             cgroup_tree_scene: Box::new(CGroupTreeScene::new(debug)),
+            cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new(debug)),
             stat_choose_scene: Box::new(StatChooseScene::new(debug)),
-            help_scene: Box::new(HelpScene::new(debug)),
+            procs_scene: Box::new(ProcsScene::new(debug)),
+            procs_help_scene: Box::new(ProcsHelpScene::new(debug)),
         }
     }
 
@@ -58,8 +74,10 @@ impl<'a> App<'a> {
         loop {
             let scene: &mut dyn Scene = match self.scene {
                 AppScene::CGroupTree => &mut *self.cgroup_tree_scene,
+                AppScene::CgroupTreeHelp => &mut *self.cgroup_tree_help_scene,
                 AppScene::StatChoose => &mut *self.stat_choose_scene,
-                AppScene::Help => &mut *self.help_scene,
+                AppScene::Procs => &mut *self.procs_scene,
+                AppScene::ProcsHelp => &mut *self.procs_help_scene,
             };
 
             if reload {
@@ -82,7 +100,20 @@ impl<'a> App<'a> {
                 PollResult::SceneParms(scene, parms) => {
                     for parm in parms {
                         match parm {
-                            SceneChangeParm::Stat(item) => self.cgroup_tree_scene.set_stat(item),
+                            SceneChangeParm::Stat(item) => {
+                                self.cgroup_tree_scene.set_stat(item);
+                                self.procs_scene.set_stat(item);
+                            }
+                            SceneChangeParm::ProcCGroup(cgroup) => {
+                                self.procs_scene.set_cgroup(cgroup);
+                            }
+                            SceneChangeParm::ProcThreads(threads) => {
+                                self.procs_scene.set_threads(threads);
+                            }
+                            SceneChangeParm::NewSort(sort) => {
+                                self.cgroup_tree_scene.set_sort(sort);
+                                self.procs_scene.set_sort(sort);
+                            }
                         }
                     }
                     self.scene = scene;

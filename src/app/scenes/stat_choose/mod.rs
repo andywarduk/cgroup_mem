@@ -3,13 +3,14 @@ use std::io;
 use crossterm::event::{self, Event, KeyCode, MouseEventKind};
 
 use tui::{
-    style::{Style, Modifier},
-    widgets::{Block, Borders, List, ListState, ListItem},
+    style::{Modifier, Style},
+    widgets::{Block, Borders, List, ListItem, ListState},
 };
 
 use crate::{
     app::{AppScene, PollResult, SceneChangeParm},
-    TermType, cgroup::stats::STATS,
+    cgroup::stats::STATS,
+    TermType,
 };
 
 use super::Scene;
@@ -67,15 +68,17 @@ impl<'a> Scene for StatChooseScene<'a> {
             let size = f.size();
 
             // Build list items
-            self.items = STATS.iter().map(|stat| {
-                ListItem::new(stat.desc())
-            }).collect();
+            self.items = STATS
+                .iter()
+                .map(|stat| ListItem::new(stat.desc()))
+                .collect();
+
+            // Create the block
+            let block = Block::default().title("Displayed Statistic").borders(Borders::ALL);
 
             // Create the list
             let list = List::new(self.items.clone())
-                .block(Block::default()
-                .title("Displayed Statistic")
-                .borders(Borders::ALL))
+                .block(block)
                 .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
             // Draw the paragraph
@@ -95,15 +98,16 @@ impl<'a> Scene for StatChooseScene<'a> {
                     // A key was pressed
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
-                             PollResult::Scene(AppScene::CGroupTree)
+                            PollResult::Scene(AppScene::CGroupTree)
                         }
                         KeyCode::Down => self.down(),
                         KeyCode::Up => self.up(),
                         KeyCode::Enter | KeyCode::Char(' ') => {
                             if let Some(selected) = self.state.selected() {
-                                PollResult::SceneParms(AppScene::CGroupTree, vec![
-                                    SceneChangeParm::Stat(selected)
-                                ])
+                                PollResult::SceneParms(
+                                    AppScene::CGroupTree,
+                                    vec![SceneChangeParm::Stat(selected)],
+                                )
                             } else {
                                 PollResult::None
                             }
