@@ -21,7 +21,7 @@ pub struct StatChooseScene<'a> {
 }
 
 impl<'a> StatChooseScene<'a> {
-    pub fn new(_debug: bool) -> Self {
+    pub fn new() -> Self {
         Self {
             items: Vec::new(),
             state: ListState::default(),

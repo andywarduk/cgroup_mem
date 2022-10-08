@@ -20,7 +20,7 @@ pub struct ProcsHelpScene {
 }
 
 impl ProcsHelpScene {
-    pub fn new(_debug: bool) -> Self {
+    pub fn new() -> Self {
         Self { help_scroll: 0 }
     }
 

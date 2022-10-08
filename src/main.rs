@@ -8,6 +8,8 @@ mod proc;
 
 use std::io;
 
+use clap::Parser;
+
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
@@ -24,11 +26,14 @@ use app::App;
 type TermType = Terminal<CrosstermBackend<io::Stdout>>;
 
 fn main() -> Result<(), io::Error> {
+    // Parse command line arguments
+    let args = Args::parse();
+
     // Set up terminal
     match setup_terminal() {
         Ok(mut terminal) => {
             // Run the application
-            let mut app = App::new(&mut terminal, true);
+            let mut app = App::new(&mut terminal, &args);
 
             let res = app.run();
 
@@ -67,4 +72,12 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
     }
 
     Ok(())
+}
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about)]
+pub struct Args {
+   /// Enable debug mode
+   #[clap(short = 'd', long = "debug", action)]
+   debug: bool,
 }

@@ -3,7 +3,7 @@ mod scenes;
 use std::io;
 use std::path::PathBuf;
 
-use crate::cgroup::SortOrder;
+use crate::{cgroup::SortOrder, Args};
 
 use super::TermType;
 
@@ -55,15 +55,15 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     /// Creates the app
-    pub fn new(terminal: &'a mut TermType, debug: bool) -> Self {
+    pub fn new(terminal: &'a mut TermType, args: &Args) -> Self {
         Self {
             scene: AppScene::CGroupTree,
             terminal,
-            cgroup_tree_scene: Box::new(CGroupTreeScene::new(debug)),
-            cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new(debug)),
-            stat_choose_scene: Box::new(StatChooseScene::new(debug)),
-            procs_scene: Box::new(ProcsScene::new(debug)),
-            procs_help_scene: Box::new(ProcsHelpScene::new(debug)),
+            cgroup_tree_scene: Box::new(CGroupTreeScene::new(args.debug)),
+            cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new()),
+            stat_choose_scene: Box::new(StatChooseScene::new()),
+            procs_scene: Box::new(ProcsScene::new(args.debug)),
+            procs_help_scene: Box::new(ProcsHelpScene::new()),
         }
     }
 
@@ -81,6 +81,7 @@ impl<'a> App<'a> {
             };
 
             if reload {
+                // Reload the scene
                 scene.reload();
                 reload = false;
             }
@@ -100,20 +101,10 @@ impl<'a> App<'a> {
                 PollResult::SceneParms(scene, parms) => {
                     for parm in parms {
                         match parm {
-                            SceneChangeParm::Stat(item) => {
-                                self.cgroup_tree_scene.set_stat(item);
-                                self.procs_scene.set_stat(item);
-                            }
-                            SceneChangeParm::ProcCGroup(cgroup) => {
-                                self.procs_scene.set_cgroup(cgroup);
-                            }
-                            SceneChangeParm::ProcThreads(threads) => {
-                                self.procs_scene.set_threads(threads);
-                            }
-                            SceneChangeParm::NewSort(sort) => {
-                                self.cgroup_tree_scene.set_sort(sort);
-                                self.procs_scene.set_sort(sort);
-                            }
+                            SceneChangeParm::Stat(item) => self.set_stat(item),
+                            SceneChangeParm::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
+                            SceneChangeParm::ProcThreads(threads) => self.set_threads(threads),
+                            SceneChangeParm::NewSort(sort) => self.set_sort(sort),
                         }
                     }
                     self.scene = scene;
@@ -124,5 +115,23 @@ impl<'a> App<'a> {
         }
 
         Ok(())
+    }
+
+    fn set_stat(&mut self, stat: usize) {
+        self.cgroup_tree_scene.set_stat(stat);
+        self.procs_scene.set_stat(stat);
+    }
+
+    fn set_sort(&mut self, sort: SortOrder) {
+        self.cgroup_tree_scene.set_sort(sort);
+        self.procs_scene.set_sort(sort);
+    }
+
+    fn set_cgroup(&mut self, cgroup: PathBuf) {
+        self.procs_scene.set_cgroup(cgroup);
+    }
+
+    fn set_threads(&mut self, threads: bool) {
+        self.procs_scene.set_threads(threads);
     }
 }

@@ -20,7 +20,7 @@ pub struct CGroupTreeHelpScene {
 }
 
 impl CGroupTreeHelpScene {
-    pub fn new(_debug: bool) -> Self {
+    pub fn new() -> Self {
         Self { help_scroll: 0 }
     }
 
