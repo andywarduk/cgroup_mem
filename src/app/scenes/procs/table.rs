@@ -52,15 +52,33 @@ impl<'a> ProcsTable<'a> {
         }
     }
 
-    fn build_table_cells(procs: &[Proc], threads: bool, stat: usize) -> (Row<'a>, Vec<Constraint>, Vec<Row<'a>>) {
+    fn build_table_cells(
+        procs: &[Proc],
+        threads: bool,
+        stat: usize,
+    ) -> (Row<'a>, Vec<Constraint>, Vec<Row<'a>>) {
         let mut header_cells = Vec::new();
         let mut widths = Vec::new();
 
         // Calculate max PID length
-        let pid_len = cmp::max(3, procs.iter().map(|p| format!("{}", p.pid).len()).max().unwrap_or(0));
+        let pid_len = cmp::max(
+            3,
+            procs
+                .iter()
+                .map(|p| format!("{}", p.pid).len())
+                .max()
+                .unwrap_or(0),
+        );
 
         // Calculate max command length
-        let cmd_len = cmp::max(7, procs.iter().map(|p| p.cmd.len()).max().unwrap_or(0));
+        let cmd_len = cmp::max(
+            7,
+            procs
+                .iter()
+                .map(|p| p.cmd.len())
+                .max()
+                .unwrap_or(0),
+        );
 
         // PID/TID column
         let text = if threads { "TID" } else { "PID" };

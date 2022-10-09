@@ -21,7 +21,12 @@ pub struct Proc {
     pub stat: Result<usize, FileProcessorError>,
 }
 
-pub fn load_procs(cgroup: &PathBuf, threads: bool, stat: usize, sort: SortOrder) -> io::Result<Vec<Proc>> {
+pub fn load_procs(
+    cgroup: &PathBuf,
+    threads: bool,
+    stat: usize,
+    sort: SortOrder,
+) -> io::Result<Vec<Proc>> {
     // Get PID list
     let mut path = cgroup_fs_path();
     path.extend(cgroup);
@@ -84,14 +89,25 @@ pub fn load_procs(cgroup: &PathBuf, threads: bool, stat: usize, sort: SortOrder)
             if stat_processor.is_none() {
                 procs.sort_by(|a, b| a.pid.cmp(&b.pid));
             } else {
-                procs.sort_by(|a, b| a.stat.as_ref().unwrap_or(&0).cmp(b.stat.as_ref().unwrap_or(&0)));
+                procs.sort_by(|a, b| {
+                    a.stat
+                        .as_ref()
+                        .unwrap_or(&0)
+                        .cmp(b.stat.as_ref().unwrap_or(&0))
+                });
             }
         }
         SortOrder::SizeDsc => {
             if stat_processor.is_none() {
                 procs.sort_by(|a, b| a.pid.cmp(&b.pid).reverse());
             } else {
-                procs.sort_by(|a, b| a.stat.as_ref().unwrap_or(&0).cmp(b.stat.as_ref().unwrap_or(&0)).reverse());
+                procs.sort_by(|a, b| {
+                    a.stat
+                        .as_ref()
+                        .unwrap_or(&0)
+                        .cmp(b.stat.as_ref().unwrap_or(&0))
+                        .reverse()
+                });
             }
         }
     }

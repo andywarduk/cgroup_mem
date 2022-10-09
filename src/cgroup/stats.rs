@@ -146,9 +146,15 @@ pub struct Stat<'a> {
 }
 
 impl<'a> Stat<'a> {
-    const fn new(def: &'a str, short_desc: &'a str, desc: &'a str, stype: StatType,
-        proc_def: &'a str, proc_short_desc: &'a str, proc_stype: ProcStatType) -> Self 
-    {
+    const fn new(
+        def: &'a str,
+        short_desc: &'a str,
+        desc: &'a str,
+        stype: StatType,
+        proc_def: &'a str,
+        proc_short_desc: &'a str,
+        proc_stype: ProcStatType,
+    ) -> Self {
         Self {
             def,
             short_desc,

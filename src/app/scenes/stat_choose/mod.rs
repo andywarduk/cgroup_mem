@@ -4,7 +4,8 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::{
     style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState}, text::{Spans, Span},
+    text::{Span, Spans},
+    widgets::{Block, Borders, List, ListItem, ListState},
 };
 
 use crate::{
@@ -93,7 +94,9 @@ impl<'a> Scene for StatChooseScene<'a> {
             let size = f.size();
 
             // Create the block
-            let block = Block::default().title("Displayed Statistic").borders(Borders::ALL);
+            let block = Block::default()
+                .title("Displayed Statistic")
+                .borders(Borders::ALL);
 
             // Create the list
             let list = List::new(self.items.clone())
