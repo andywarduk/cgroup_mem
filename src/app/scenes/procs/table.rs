@@ -153,7 +153,12 @@ impl<'a> ProcsTable<'a> {
         let size = frame.size();
 
         // Calculate number of rows in a page
-        self.page_size = if size.height > 3 { size.height - 3 } else { 1 };
+        self.page_size = block.inner(size).height;
+
+        if self.page_size > 0 {
+            // Take one off for the heading row
+            self.page_size -= 1;
+        }
 
         if let Some(error) = &self.error {
             // Display error message
