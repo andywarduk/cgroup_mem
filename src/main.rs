@@ -1,4 +1,6 @@
-#[deny(missing_docs)]
+#![deny(missing_docs)]
+
+//! CGroup memory statistics display
 
 mod app;
 mod cgroup;
@@ -24,9 +26,10 @@ use tui::{
 
 use app::App;
 
+/// Command line arguments
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
-pub struct Args {
+struct Args {
     /// Enable debug mode
     #[clap(short = 'd', long = "debug", action)]
     debug: bool,
@@ -53,7 +56,7 @@ fn main() -> Result<(), io::Error> {
     match setup_terminal() {
         Ok(mut terminal) => {
             // Run the application
-            let mut app = App::new(&mut terminal, &args);
+            let mut app = App::new(&mut terminal, (args.stat - 1) as usize, args.debug);
 
             let res = app.run();
 

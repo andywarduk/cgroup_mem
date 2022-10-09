@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 
-use crate::{cgroup::SortOrder, Args};
+use crate::cgroup::SortOrder;
 
 use super::TermType;
 
@@ -54,21 +54,21 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     /// Creates the app
-    pub fn new(terminal: &'a mut TermType, args: &Args) -> Self {
+    pub fn new(terminal: &'a mut TermType, stat: usize, debug: bool) -> Self {
         let mut res = Self {
             scene: AppScene::CGroupTree,
             terminal,
             reload: true,
             running: true,
-            cgroup_tree_scene: Box::new(CGroupTreeScene::new(args.debug)),
+            cgroup_tree_scene: Box::new(CGroupTreeScene::new(debug)),
             cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new()),
             stat_choose_scene: Box::new(StatChooseScene::new()),
-            procs_scene: Box::new(ProcsScene::new(args.debug)),
+            procs_scene: Box::new(ProcsScene::new(debug)),
             procs_help_scene: Box::new(ProcsHelpScene::new()),
         };
 
         // Set initial statistic
-        res.set_stat((args.stat - 1) as usize);
+        res.set_stat(stat);
 
         // Set initial sort order
         res.set_sort(SortOrder::SizeDsc);
