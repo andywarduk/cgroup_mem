@@ -28,16 +28,17 @@ pub struct CGroupTree<'a> {
     cgroups: Vec<CGroup>,
     items: Vec<TreeItem<'a>>,
     state: TreeState,
+    single_root: bool,
 }
 
 impl<'a> CGroupTree<'a> {
     /// Build tree
     pub fn build_tree(&mut self, cgroup2fs: &Path, stat: usize, sort: SortOrder) {
         // Save currently selected node path
-        let selected = self.cgroup().map(|cg| cg.path().clone());
+        let old_selected = self.cgroup().map(|cg| cg.path().clone());
 
         // Save currently opened node paths
-        let opened: Vec<PathBuf> = self
+        let old_opened: Vec<PathBuf> = self
             .state
             .get_all_opened()
             .into_iter()
@@ -53,35 +54,45 @@ impl<'a> CGroupTree<'a> {
         let cgroups = load_cgroups(cgroup2fs, stat, sort);
 
         // Build tree items
-        let items = self.build_tree_level(&cgroups, stat, &selected, &opened, vec![]);
+        let items = self.build_tree_level(&cgroups, stat, &old_selected, &old_opened, vec![]);
 
         // Save the vectors
         self.cgroups = cgroups;
         self.items = items;
+
+        // Expand the root node is we're switching to a view with a single root node
+        if self.items.len() == 1 {
+            if !self.single_root {
+                self.state.open(vec![0]);
+                self.single_root = true;
+            }
+        } else {
+            self.single_root = false;
+        }
     }
 
     fn build_tree_level(
         &mut self,
-        cgroups: &Vec<CGroup>,
+        cgroups: &[CGroup],
         stat: usize,
-        selected: &Option<PathBuf>,
-        opened: &Vec<PathBuf>,
-        cur: Vec<usize>,
+        old_selected: &Option<PathBuf>,
+        old_opened: &Vec<PathBuf>,
+        cur_item: Vec<usize>,
     ) -> Vec<TreeItem<'a>> {
-        let mut tree_items = Vec::with_capacity(cgroups.len());
+        let mut tree_items = Vec::new();
 
         for (i, cg) in cgroups.iter().enumerate() {
             // Build text for this node
             let text: Text = Self::cgroup_text(cg, stat);
 
             // Add node to the index vector
-            let mut next = cur.clone();
+            let mut next = cur_item.clone();
             next.push(i);
 
             // Was this path previously selected?
             let path = cg.path();
 
-            if let Some(selected) = selected {
+            if let Some(selected) = old_selected {
                 if selected == path {
                     // Yes - select it
                     self.state.select(next.clone())
@@ -89,16 +100,16 @@ impl<'a> CGroupTree<'a> {
             }
 
             // Was this path previously expanded?
-            if opened
+            if old_opened
                 .iter()
-                .any(|old_path| path == &PathBuf::from("") || old_path == path)
+                .any(|old_path| old_path == path)
             {
                 // Yes - expand it
                 self.state.open(next.clone());
             }
 
             // Process sub nodes
-            let sub_nodes = self.build_tree_level(cg.children(), stat, selected, opened, next);
+            let sub_nodes = self.build_tree_level(cg.children(), stat, old_selected, old_opened, next);
 
             // Push this item
             tree_items.push(TreeItem::new(text, sub_nodes));
