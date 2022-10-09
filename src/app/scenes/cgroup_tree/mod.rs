@@ -61,7 +61,7 @@ impl<'a> CGroupTreeScene<'a> {
             _ => SortOrder::NameAsc,
         };
 
-        Some(vec![Action::Sort(new_sort)])
+        Some(vec![Action::Sort(new_sort), Action::Reload])
     }
 
     fn sort_stat(&mut self) -> PollResult {
@@ -70,7 +70,7 @@ impl<'a> CGroupTreeScene<'a> {
             _ => SortOrder::SizeAsc,
         };
 
-        Some(vec![Action::Sort(new_sort)])
+        Some(vec![Action::Sort(new_sort), Action::Reload])
     }
 
     fn next_stat(&self, up: bool) -> PollResult {
