@@ -1,4 +1,4 @@
-use std::io::Stdout;
+use std::{io::Stdout, path::PathBuf};
 
 use tui::{
     backend::CrosstermBackend,
@@ -30,25 +30,81 @@ pub struct CGroupTree<'a> {
 impl<'a> CGroupTree<'a> {
     /// Build tree
     pub fn build_tree(&mut self, stat: usize, sort: SortOrder) {
+        // Save currently selected node path
+        let selected = self.cgroup().map(|cg| cg.path().clone());
+
+        // Save currently opened node paths
+        let opened: Vec<PathBuf> = self
+            .state
+            .get_all_opened()
+            .into_iter()
+            .filter_map(|sel| self.cgroup_from_selected(sel))
+            .map(|cg| cg.path().clone())
+            .collect();
+
+        // Close all opened
+        self.state.close_all();
+        self.state.select(vec![]);
+
         // Load cgroup information
-        self.cgroups = load_cgroups(stat, sort);
+        let cgroups = load_cgroups(stat, sort);
 
         // Build tree items
-        self.items = Self::build_tree_level(&self.cgroups, stat);
+        let items = self.build_tree_level(&cgroups, stat, &selected, &opened, vec![]);
+
+        // Save the vectors
+        self.cgroups = cgroups;
+        self.items = items;
     }
 
-    fn build_tree_level(cgroups: &Vec<CGroup>, stat: usize) -> Vec<TreeItem<'a>> {
+    fn build_tree_level(
+        &mut self,
+        cgroups: &Vec<CGroup>,
+        stat: usize,
+        selected: &Option<PathBuf>,
+        opened: &Vec<PathBuf>,
+        cur: Vec<usize>,
+    ) -> Vec<TreeItem<'a>> {
         let mut tree_items = Vec::with_capacity(cgroups.len());
 
-        for cg in cgroups {
+        for (i, cg) in cgroups.iter().enumerate() {
+            // Build text for this node
             let text: Text = Self::cgroup_text(cg, stat);
-            let sub_nodes = Self::build_tree_level(cg.children(), stat);
+
+            // Add node to the index vector
+            let mut next = cur.clone();
+            next.push(i);
+
+            // Was this path previously selected?
+            let path = cg.path();
+
+            if let Some(selected) = selected {
+                if selected == path {
+                    // Yes - select it
+                    self.state.select(next.clone())
+                }
+            }
+
+            // Was this path previously expanded?
+            if opened
+                .iter()
+                .any(|old_path| path == &PathBuf::from("") || old_path == path)
+            {
+                // Yes - expand it
+                self.state.open(next.clone());
+            }
+
+            // Process sub nodes
+            let sub_nodes = self.build_tree_level(cg.children(), stat, selected, opened, next);
+
+            // Push this item
             tree_items.push(TreeItem::new(text, sub_nodes));
         }
 
         tree_items
     }
 
+    #[must_use]
     fn cgroup_text(cgroup: &CGroup, stat: usize) -> Text<'a> {
         let filename = cgroup.path().file_name();
 
@@ -135,12 +191,18 @@ impl<'a> CGroupTree<'a> {
         Some(vec![])
     }
 
+    #[must_use]
     pub fn selected(&self) -> Vec<usize> {
         self.state.selected()
     }
 
-    pub fn cgroup(&mut self) -> Option<&CGroup> {
-        let selected = self.selected();
+    #[must_use]
+    pub fn cgroup(&self) -> Option<&CGroup> {
+        self.cgroup_from_selected(self.selected())
+    }
+
+    #[must_use]
+    fn cgroup_from_selected(&self, selected: Vec<usize>) -> Option<&CGroup> {
         let (cgroup, _) = selected
             .iter()
             .fold((None, &self.cgroups), |(_, level), e| {

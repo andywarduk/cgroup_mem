@@ -73,7 +73,8 @@ pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
 
     match load_cgroup_rec(abs_path, &rel_path, sort, stat, &*processor) {
         Ok(cgroup) => {
-            if cgroup.stat == 0 {
+            if cgroup.error.is_some() && !cgroup.children.is_empty() {
+                // Handle case where this is no file in the root directory
                 cgroup.children
             } else {
                 vec![cgroup]
@@ -83,7 +84,13 @@ pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
     }
 }
 
-fn load_cgroup_rec(abs_path: PathBuf, rel_path: &Path, sort: SortOrder, stat: usize, processor: &dyn FileProcessor) -> io::Result<CGroup> {
+fn load_cgroup_rec(
+    abs_path: PathBuf,
+    rel_path: &Path,
+    sort: SortOrder,
+    stat: usize,
+    processor: &dyn FileProcessor,
+) -> io::Result<CGroup> {
     let mut cgroup = CGroup::new(rel_path.to_path_buf());
 
     // Recurse in to sub directories first
