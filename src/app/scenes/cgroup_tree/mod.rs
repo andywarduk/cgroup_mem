@@ -5,7 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::event::{self, Event, KeyCode, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
 use crate::{
@@ -55,9 +55,42 @@ impl<'a> CGroupTreeScene<'a> {
         self.sort = sort;
     }
 
-    /// Calculates the time left before the details should be reloaded, None returned if overdue
-    fn time_to_refresh(&self) -> Option<Duration> {
-        self.next_refresh.checked_duration_since(Instant::now())
+    fn sort_name(&mut self) -> PollResult {
+        let new_sort = match self.sort {
+            SortOrder::NameAsc => SortOrder::NameDsc,
+            _ => SortOrder::NameAsc,
+        };
+
+        PollResult::SceneParms(
+            AppScene::CGroupTree,
+            vec![SceneChangeParm::Sort(new_sort)],
+        )
+    }
+
+    fn sort_stat(&mut self) -> PollResult {
+        let new_sort = match self.sort {
+            SortOrder::SizeAsc => SortOrder::SizeDsc,
+            _ => SortOrder::SizeAsc,
+        };
+
+        PollResult::SceneParms(
+            AppScene::CGroupTree,
+            vec![SceneChangeParm::Sort(new_sort)],
+        )
+    }
+
+    fn procs(&mut self, threads: bool) -> PollResult {
+        if let Some(cgroup) = self.tree.cgroup() {
+            PollResult::SceneParms(
+                AppScene::Procs,
+                vec![
+                    SceneChangeParm::ProcCGroup(cgroup.path().clone()),
+                    SceneChangeParm::ProcThreads(threads),
+                ],
+            )
+        } else {
+            PollResult::None
+        }
     }
 }
 
@@ -98,136 +131,30 @@ impl<'a> Scene for CGroupTreeScene<'a> {
         Ok(())
     }
 
-    fn poll(&mut self) -> Result<PollResult, io::Error> {
-        let mut result = PollResult::None;
+    /// Calculates the time left before the details should be reloaded, None returned if overdue
+    fn time_to_refresh(&self) -> Option<Duration> {
+        self.next_refresh.checked_duration_since(Instant::now())
+    }
 
-        while result == PollResult::None {
-            result = if let Some(poll_duration) = self.time_to_refresh() {
-                if event::poll(poll_duration)? {
-                    match event::read()? {
-                        Event::Key(key_event) => {
-                            // A key was pressed
-                            match key_event.code {
-                                KeyCode::Char('q') | KeyCode::Esc => PollResult::Exit,
-                                KeyCode::Left => {
-                                    self.tree.left();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Right => {
-                                    self.tree.right();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Down => {
-                                    self.tree.down();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Up => {
-                                    self.tree.up();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Home => {
-                                    self.tree.first();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::End => {
-                                    self.tree.last();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Char('c') => {
-                                    self.tree.close_all();
-                                    PollResult::Redraw
-                                }
-                                KeyCode::Char('r') => PollResult::Reload,
-                                KeyCode::Char('n') => {
-                                    let new_sort = match self.sort {
-                                        SortOrder::NameAsc => SortOrder::NameDsc,
-                                        _ => SortOrder::NameAsc,
-                                    };
-
-                                    PollResult::SceneParms(
-                                        AppScene::CGroupTree,
-                                        vec![SceneChangeParm::NewSort(new_sort)],
-                                    )
-                                }
-                                KeyCode::Char('s') => {
-                                    let new_sort = match self.sort {
-                                        SortOrder::SizeAsc => SortOrder::SizeDsc,
-                                        _ => SortOrder::SizeAsc,
-                                    };
-
-                                    PollResult::SceneParms(
-                                        AppScene::CGroupTree,
-                                        vec![SceneChangeParm::NewSort(new_sort)],
-                                    )
-                                }
-                                KeyCode::Char('p') => {
-                                    if let Some(cgroup) = self.tree.cgroup() {
-                                        PollResult::SceneParms(
-                                            AppScene::Procs,
-                                            vec![
-                                                SceneChangeParm::ProcCGroup(cgroup.path().clone()),
-                                                SceneChangeParm::ProcThreads(false),
-                                            ],
-                                        )
-                                    } else {
-                                        PollResult::None
-                                    }
-                                }
-                                KeyCode::Char('t') => {
-                                    if let Some(cgroup) = self.tree.cgroup() {
-                                        PollResult::SceneParms(
-                                            AppScene::Procs,
-                                            vec![
-                                                SceneChangeParm::ProcCGroup(cgroup.path().clone()),
-                                                SceneChangeParm::ProcThreads(true),
-                                            ],
-                                        )
-                                    } else {
-                                        PollResult::None
-                                    }
-                                }
-                                KeyCode::Char('z') => PollResult::Scene(AppScene::StatChoose),
-                                KeyCode::Char('h') => PollResult::Scene(AppScene::CgroupTreeHelp),
-                                _ => PollResult::None,
-                            }
-                        }
-                        Event::Mouse(mouse_event) => {
-                            // Mouse event
-                            match mouse_event.kind {
-                                MouseEventKind::ScrollDown => {
-                                    self.tree.down();
-                                    PollResult::Redraw
-                                }
-                                MouseEventKind::ScrollUp => {
-                                    self.tree.up();
-                                    PollResult::Redraw
-                                }
-                                // TODO MouseEventKind::Up() => {
-                                //     mouse_event.column
-                                //     mouse_event.row
-                                // }
-                                _ => PollResult::None,
-                            }
-                        }
-                        Event::Resize(_, _) => {
-                            // Break out to redraw
-                            PollResult::Redraw
-                        }
-                        _ => {
-                            // All other events are ignored
-                            PollResult::None
-                        }
-                    }
-                } else {
-                    // No event in the timeout period
-                    PollResult::Reload
-                }
-            } else {
-                // No time left
-                PollResult::Reload
-            }
+    /// Key event
+    fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
+        match key_event.code {
+            KeyCode::Char('q') | KeyCode::Esc => PollResult::Exit,
+            KeyCode::Left => self.tree.left(),
+            KeyCode::Right => self.tree.right(),
+            KeyCode::Down => self.tree.down(),
+            KeyCode::Up => self.tree.up(),
+            KeyCode::Home => self.tree.first(),
+            KeyCode::End => self.tree.last(),
+            KeyCode::Char('c') => self.tree.close_all(),
+            KeyCode::Char('r') => PollResult::Reload,
+            KeyCode::Char('n') => self.sort_name(),
+            KeyCode::Char('s') => self.sort_stat(),
+            KeyCode::Char('p') => self.procs(false),
+            KeyCode::Char('t') => self.procs(true),
+            KeyCode::Char('z') => PollResult::Scene(AppScene::StatChoose),
+            KeyCode::Char('h') => PollResult::Scene(AppScene::CgroupTreeHelp),
+            _ => PollResult::None,
         }
-
-        Ok(result)
     }
 }

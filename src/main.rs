@@ -8,6 +8,7 @@ mod proc;
 
 use std::io;
 
+use cgroup::stats::STATS;
 use clap::Parser;
 
 use crossterm::{
@@ -23,11 +24,30 @@ use tui::{
 
 use app::App;
 
-type TermType = Terminal<CrosstermBackend<io::Stdout>>;
+#[derive(Parser, Debug)]
+#[clap(author, version, about)]
+pub struct Args {
+    /// Enable debug mode
+    #[clap(short = 'd', long = "debug", action)]
+    debug: bool,
+
+    /// List available statistics
+    #[clap(short = 'l', long = "list", action)]
+    list_stats: bool,
+
+    /// Initial statistic to display
+    #[clap(short = 's', long = "stat", default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..=(STATS.len() as i64)))]
+    stat: u16,
+}
 
 fn main() -> Result<(), io::Error> {
     // Parse command line arguments
     let args = Args::parse();
+
+    if args.list_stats {
+        list_stats();
+        return Ok(());
+    }
 
     // Set up terminal
     match setup_terminal() {
@@ -48,6 +68,8 @@ fn main() -> Result<(), io::Error> {
         }
     }
 }
+
+type TermType = Terminal<CrosstermBackend<io::Stdout>>;
 
 fn setup_terminal() -> Result<TermType, io::Error> {
     enable_raw_mode()?;
@@ -74,10 +96,8 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
     Ok(())
 }
 
-#[derive(Parser, Debug)]
-#[clap(author, version, about)]
-pub struct Args {
-   /// Enable debug mode
-   #[clap(short = 'd', long = "debug", action)]
-   debug: bool,
+fn list_stats() {
+    for (i, s) in STATS.iter().enumerate() {
+        println!("{:>2}: {}", i + 1, s.desc());
+    }
 }

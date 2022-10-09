@@ -10,6 +10,7 @@ use tui::{
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
+    app::PollResult,
     cgroup::{
         load_cgroups,
         stats::{StatType, STATS},
@@ -93,32 +94,46 @@ impl<'a> CGroupTree<'a> {
         frame.render_stateful_widget(tree, size, &mut self.state);
     }
 
-    pub fn left(&mut self) {
+    #[must_use]
+    pub fn left(&mut self) -> PollResult {
         self.state.key_left();
+        PollResult::Redraw
     }
 
-    pub fn right(&mut self) {
+    #[must_use]
+    pub fn right(&mut self) -> PollResult {
         self.state.key_right();
+        PollResult::Redraw
     }
 
-    pub fn down(&mut self) {
+    #[must_use]
+    pub fn down(&mut self) -> PollResult {
         self.state.key_down(&self.items);
+        PollResult::Redraw
     }
 
-    pub fn up(&mut self) {
+    #[must_use]
+    pub fn up(&mut self) -> PollResult {
         self.state.key_up(&self.items);
+        PollResult::Redraw
     }
 
-    pub fn first(&mut self) {
+    #[must_use]
+    pub fn first(&mut self) -> PollResult {
         self.state.select_first();
+        PollResult::Redraw
     }
 
-    pub fn last(&mut self) {
+    #[must_use]
+    pub fn last(&mut self) -> PollResult {
         self.state.select_last(&self.items);
+        PollResult::Redraw
     }
 
-    pub fn close_all(&mut self) {
+    #[must_use]
+    pub fn close_all(&mut self) -> PollResult {
         self.state.close_all();
+        PollResult::Redraw
     }
 
     pub fn selected(&self) -> Vec<usize> {

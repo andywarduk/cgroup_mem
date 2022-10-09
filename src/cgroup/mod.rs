@@ -2,12 +2,12 @@ pub mod stats;
 
 use std::{
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
-use crate::file_proc::{FileProcessor, get_file_processor};
+use crate::file_proc::{get_file_processor, FileProcessor};
 
-use self::stats::{STATS, StatType};
+use self::stats::{StatType, STATS};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -83,8 +83,8 @@ pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
     }
 }
 
-fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat: usize, processor: &dyn FileProcessor) -> io::Result<CGroup> {
-    let mut cgroup = CGroup::new(rel_path.clone());
+fn load_cgroup_rec(abs_path: PathBuf, rel_path: &Path, sort: SortOrder, stat: usize, processor: &dyn FileProcessor) -> io::Result<CGroup> {
+    let mut cgroup = CGroup::new(rel_path.to_path_buf());
 
     // Recurse in to sub directories first
     let dir = abs_path.read_dir()?;
@@ -95,7 +95,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
 
             if let Ok(ftype) = file.file_type() {
                 if ftype.is_dir() {
-                    let mut sub_rel_path = rel_path.clone();
+                    let mut sub_rel_path = rel_path.to_path_buf();
                     sub_rel_path.push(fname);
 
                     match load_cgroup_rec(file.path(), &sub_rel_path, sort, stat, processor) {
@@ -123,7 +123,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
             if child_sum > 0 {
                 if cgroup.stat > 0 {
                     // Add self quantity
-                    let mut sub_rel_path = rel_path.clone();
+                    let mut sub_rel_path = rel_path.to_path_buf();
                     sub_rel_path.push("<self>");
                     let mut cg_self = CGroup::new(sub_rel_path);
                     cg_self.stat = cgroup.stat;
@@ -141,7 +141,7 @@ fn load_cgroup_rec(abs_path: PathBuf, rel_path: &PathBuf, sort: SortOrder, stat:
 
                 if child_sum < cgroup.stat {
                     // Add self quantity
-                    let mut sub_rel_path = rel_path.clone();
+                    let mut sub_rel_path = rel_path.to_path_buf();
                     sub_rel_path.push("<self>");
                     let mut cg_self = CGroup::new(sub_rel_path);
                     cg_self.stat = cgroup.stat - child_sum;

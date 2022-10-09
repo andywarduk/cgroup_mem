@@ -3,6 +3,8 @@ mod scenes;
 use std::io;
 use std::path::PathBuf;
 
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
+
 use crate::{cgroup::SortOrder, Args};
 
 use super::TermType;
@@ -31,7 +33,7 @@ pub enum SceneChangeParm {
     Stat(usize),
     ProcCGroup(PathBuf),
     ProcThreads(bool),
-    NewSort(SortOrder),
+    Sort(SortOrder),
 }
 
 #[derive(PartialEq, Eq)]
@@ -56,7 +58,7 @@ pub struct App<'a> {
 impl<'a> App<'a> {
     /// Creates the app
     pub fn new(terminal: &'a mut TermType, args: &Args) -> Self {
-        Self {
+        let mut res = Self {
             scene: AppScene::CGroupTree,
             terminal,
             cgroup_tree_scene: Box::new(CGroupTreeScene::new(args.debug)),
@@ -64,11 +66,19 @@ impl<'a> App<'a> {
             stat_choose_scene: Box::new(StatChooseScene::new()),
             procs_scene: Box::new(ProcsScene::new(args.debug)),
             procs_help_scene: Box::new(ProcsHelpScene::new()),
-        }
+        };
+
+        // Set initial statistic
+        res.set_stat((args.stat - 1) as usize);
+
+        // Set initial sort order
+        res.set_sort(SortOrder::SizeDsc);
+
+        res
     }
 
     /// Main application loop
-    pub fn run(&'a mut self) -> Result<(), io::Error> {
+    pub fn run(&mut self) -> Result<(), io::Error> {
         let mut reload = true;
 
         loop {
@@ -90,7 +100,7 @@ impl<'a> App<'a> {
             scene.draw(self.terminal)?;
 
             // Poll events
-            match scene.poll()? {
+            match Self::poll(scene)? {
                 PollResult::Exit => break,
                 PollResult::Redraw => (),
                 PollResult::Reload => reload = true,
@@ -104,7 +114,7 @@ impl<'a> App<'a> {
                             SceneChangeParm::Stat(item) => self.set_stat(item),
                             SceneChangeParm::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
                             SceneChangeParm::ProcThreads(threads) => self.set_threads(threads),
-                            SceneChangeParm::NewSort(sort) => self.set_sort(sort),
+                            SceneChangeParm::Sort(sort) => self.set_sort(sort),
                         }
                     }
                     self.scene = scene;
@@ -117,8 +127,50 @@ impl<'a> App<'a> {
         Ok(())
     }
 
+    fn poll(scene: &mut dyn Scene) -> Result<PollResult, io::Error> {
+        let mut result = PollResult::None;
+
+        while result == PollResult::None {
+            result = if let Some(poll_duration) = scene.time_to_refresh() {
+                if event::poll(poll_duration)? {
+                    match event::read()? {
+                        Event::Key(key_event) => {
+                            // A key was pressed
+                            scene.key_event(key_event)
+                        }
+                        Event::Mouse(mouse_event) => {
+                            // Mouse event
+                            match mouse_event.kind {
+                                MouseEventKind::ScrollDown => scene.key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+                                MouseEventKind::ScrollUp => scene.key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)),
+                                _ => PollResult::None,
+                            }
+                        }
+                        Event::Resize(_, _) => {
+                            // Break out to redraw
+                            PollResult::Redraw
+                        }
+                        _ => {
+                            // All other events are ignored
+                            PollResult::None
+                        }
+                    }
+                } else {
+                    // No event in the timeout period
+                    PollResult::Reload
+                }
+            } else {
+                // No time left
+                PollResult::Reload
+            }
+        }
+
+        Ok(result)
+    }
+
     fn set_stat(&mut self, stat: usize) {
         self.cgroup_tree_scene.set_stat(stat);
+        self.stat_choose_scene.set_stat(stat);
         self.procs_scene.set_stat(stat);
     }
 

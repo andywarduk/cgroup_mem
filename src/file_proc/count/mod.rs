@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufRead},
-    path::PathBuf,
+    path::Path,
 };
 
 use super::{FileProcessor, FileProcessorError};
@@ -22,8 +22,8 @@ impl CountProcessor {
 }
 
 impl FileProcessor for CountProcessor {
-    fn get_value(&self, path: &PathBuf) -> Result<String, FileProcessorError> {
-        let mut path = path.clone();
+    fn get_value(&self, path: &Path) -> Result<String, FileProcessorError> {
+        let mut path = path.to_path_buf();
 
         if let Some(file) = &self.file {
             path.push(file);

@@ -1,6 +1,6 @@
 use std::io;
 
-use crossterm::event::{self, Event, KeyCode, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::{
     style::{Modifier, Style},
@@ -22,12 +22,23 @@ pub struct StatChooseScene<'a> {
 
 impl<'a> StatChooseScene<'a> {
     pub fn new() -> Self {
+        // Build list items
+        let items = STATS
+            .iter()
+            .map(|stat| ListItem::new(stat.desc()))
+            .collect();
+
         Self {
-            items: Vec::new(),
+            items,
             state: ListState::default(),
         }
     }
 
+    pub fn set_stat(&mut self, stat: usize) {
+        self.state.select(Some(stat));
+    }
+
+    #[must_use]
     fn up(&mut self) -> PollResult {
         if let Some(cur) = self.state.selected() {
             if cur > 0 {
@@ -42,6 +53,7 @@ impl<'a> StatChooseScene<'a> {
         }
     }
 
+    #[must_use]
     fn down(&mut self) -> PollResult {
         if let Some(cur) = self.state.selected() {
             if cur < self.items.len() - 1 {
@@ -55,6 +67,18 @@ impl<'a> StatChooseScene<'a> {
             PollResult::Redraw
         }
     }
+
+    #[must_use]
+    fn select(&mut self) -> PollResult {
+        if let Some(selected) = self.state.selected() {
+            PollResult::SceneParms(
+                AppScene::CGroupTree,
+                vec![SceneChangeParm::Stat(selected)],
+            )
+        } else {
+            PollResult::None
+        }
+    }
 }
 
 impl<'a> Scene for StatChooseScene<'a> {
@@ -66,12 +90,6 @@ impl<'a> Scene for StatChooseScene<'a> {
         terminal.draw(|f| {
             // Get the size of the frame
             let size = f.size();
-
-            // Build list items
-            self.items = STATS
-                .iter()
-                .map(|stat| ListItem::new(stat.desc()))
-                .collect();
 
             // Create the block
             let block = Block::default().title("Displayed Statistic").borders(Borders::ALL);
@@ -88,52 +106,16 @@ impl<'a> Scene for StatChooseScene<'a> {
         Ok(())
     }
 
-    /// Event poll loop
-    fn poll(&mut self) -> Result<PollResult, io::Error> {
-        let mut result = PollResult::None;
-
-        while result == PollResult::None {
-            result = match event::read()? {
-                Event::Key(key_event) => {
-                    // A key was pressed
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
-                            PollResult::Scene(AppScene::CGroupTree)
-                        }
-                        KeyCode::Down => self.down(),
-                        KeyCode::Up => self.up(),
-                        KeyCode::Enter | KeyCode::Char(' ') => {
-                            if let Some(selected) = self.state.selected() {
-                                PollResult::SceneParms(
-                                    AppScene::CGroupTree,
-                                    vec![SceneChangeParm::Stat(selected)],
-                                )
-                            } else {
-                                PollResult::None
-                            }
-                        }
-                        _ => PollResult::None,
-                    }
-                }
-                Event::Mouse(mouse_event) => {
-                    // Mouse event
-                    match mouse_event.kind {
-                        MouseEventKind::ScrollDown => self.down(),
-                        MouseEventKind::ScrollUp => self.up(),
-                        _ => PollResult::None,
-                    }
-                }
-                Event::Resize(_, _) => {
-                    // Break out to redraw
-                    PollResult::Redraw
-                }
-                _ => {
-                    // All other events are ignored
-                    PollResult::None
-                }
-            }
+    /// Key events
+    fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
+        match key_event.code {
+            KeyCode::Char('q')
+            | KeyCode::Char('h')
+            | KeyCode::Esc => PollResult::Scene(AppScene::CGroupTree),
+            KeyCode::Down => self.down(),
+            KeyCode::Up => self.up(),
+            KeyCode::Enter | KeyCode::Char(' ') => self.select(),
+            _ => PollResult::None,
         }
-
-        Ok(result)
     }
 }

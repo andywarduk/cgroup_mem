@@ -1,6 +1,6 @@
 use std::io;
 
-use crossterm::event::{self, Event, KeyCode, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::{
     style::{Color, Style},
@@ -98,42 +98,15 @@ impl Scene for ProcsHelpScene {
         Ok(())
     }
 
-    /// Event poll loop
-    fn poll(&mut self) -> Result<PollResult, io::Error> {
-        let mut result = PollResult::None;
-
-        while result == PollResult::None {
-            result = match event::read()? {
-                Event::Key(key_event) => {
-                    // A key was pressed
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
-                            PollResult::Scene(AppScene::CGroupTree)
-                        }
-                        KeyCode::Down => self.scroll_help_down(),
-                        KeyCode::Up => self.scroll_help_up(),
-                        _ => PollResult::None,
-                    }
-                }
-                Event::Mouse(mouse_event) => {
-                    // Mouse event
-                    match mouse_event.kind {
-                        MouseEventKind::ScrollDown => self.scroll_help_down(),
-                        MouseEventKind::ScrollUp => self.scroll_help_up(),
-                        _ => PollResult::None,
-                    }
-                }
-                Event::Resize(_, _) => {
-                    // Break out to redraw
-                    PollResult::Redraw
-                }
-                _ => {
-                    // All other events are ignored
-                    PollResult::None
-                }
-            }
+    /// Key event
+    fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
+        match key_event.code {
+            KeyCode::Char('q')
+            | KeyCode::Char('h')
+            | KeyCode::Esc => PollResult::Scene(AppScene::CGroupTree),
+            KeyCode::Down => self.scroll_help_down(),
+            KeyCode::Up => self.scroll_help_up(),
+            _ => PollResult::None,
         }
-
-        Ok(result)
     }
 }

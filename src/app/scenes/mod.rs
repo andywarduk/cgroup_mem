@@ -1,4 +1,6 @@
-use std::io;
+use std::{io, time::Duration};
+
+use crossterm::event::KeyEvent;
 
 use super::PollResult;
 
@@ -13,5 +15,8 @@ pub mod stat_choose;
 pub trait Scene {
     fn reload(&mut self);
     fn draw(&mut self, terminal: &mut TermType) -> Result<(), io::Error>;
-    fn poll(&mut self) -> Result<PollResult, io::Error>;
+    fn key_event(&mut self, key_event: KeyEvent) -> PollResult;
+    fn time_to_refresh(&self) -> Option<Duration> {
+        Some(Duration::MAX)
+    }
 }

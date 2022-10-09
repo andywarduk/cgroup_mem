@@ -3,20 +3,20 @@ pub mod keyed;
 pub mod single_value;
 
 use std::{
-    path::PathBuf,
+    fmt::Display,
     io,
     num::ParseIntError,
-    fmt::Display,
+    path::Path,
 };
 
-use self::{single_value::SingleValueProcessor, keyed::KeyedProcessor, count::CountProcessor};
+use self::{count::CountProcessor, keyed::KeyedProcessor, single_value::SingleValueProcessor};
 
 pub trait FileProcessor {
-    fn get_value(&self, path: &PathBuf) -> Result<String, FileProcessorError>;
+    fn get_value(&self, path: &Path) -> Result<String, FileProcessorError>;
 }
 
 impl dyn FileProcessor + '_ {
-    pub fn get_stat(&self, path: &PathBuf) -> Result<usize, FileProcessorError> {
+    pub fn get_stat(&self, path: &Path) -> Result<usize, FileProcessorError> {
         let value = self.get_value(path)?;
         Ok(value.parse::<usize>()?)
     }

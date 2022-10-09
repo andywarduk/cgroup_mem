@@ -66,19 +66,19 @@ impl<'a> ProcsTable<'a> {
         let text = if threads { "TID" } else { "PID" };
 
         header_cells.push(Cell::from(format!("{:>1$}", text, pid_len)));
-        widths.push(Constraint::Min(pid_len as u16));
+        widths.push(Constraint::Length(pid_len as u16));
 
         // Stat column
         if STATS[stat].proc_stat_type() != ProcStatType::None {
             let desc = STATS[stat].proc_short_desc();
 
             header_cells.push(Cell::from(format!("{:>7}", desc)));
-            widths.push(Constraint::Min(cmp::max(7, desc.len() as u16)));
+            widths.push(Constraint::Length(cmp::max(7, desc.len() as u16)));
         }
 
         // Command column
         header_cells.push(Cell::from("Command"));
-        widths.push(Constraint::Min(cmd_len as u16));
+        widths.push(Constraint::Length(cmd_len as u16));
 
         // Build header
         let header = Row::new(header_cells)
@@ -90,13 +90,13 @@ impl<'a> ProcsTable<'a> {
             .iter()
             .map(|proc| {
                 let mut cells = Vec::new();
-                
+
                 cells.push(Cell::from(format!("{:>1$}", proc.pid, pid_len)));
 
                 if STATS[stat].proc_stat_type() != ProcStatType::None {
                     cells.push(Cell::from(Spans::from(match &proc.stat {
                         Ok(value) => format_mem_qty(*value),
-                        Err(_) => vec![Span::styled("<Error>", Style::default().fg(Color::Red))]
+                        Err(_) => vec![Span::styled("<Error>", Style::default().fg(Color::Red))],
                     })));
                 }
 

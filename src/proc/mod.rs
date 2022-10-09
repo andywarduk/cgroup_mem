@@ -1,16 +1,18 @@
 use std::{
     fs::File,
-    io::{self, BufReader, BufRead},
+    io::{self, BufRead, BufReader},
     path::PathBuf,
 };
 
 use crate::{
     cgroup::{
         cgroup_fs_path,
-        stats::{STATS, ProcStatType},
-        SortOrder
+        stats::{ProcStatType, STATS},
+        SortOrder,
     },
-    file_proc::{single_value::SingleValueProcessor, FileProcessor, get_file_processor, FileProcessorError}
+    file_proc::{
+        get_file_processor, single_value::SingleValueProcessor, FileProcessor, FileProcessorError,
+    },
 };
 
 pub struct Proc {
@@ -43,12 +45,12 @@ pub fn load_procs(cgroup: &PathBuf, threads: bool, stat: usize, sort: SortOrder)
             let cmd = match file_processor.get_value(&proc_path.join("cmdline")) {
                 Ok(string) => string
                     .chars()
-                    .map(|c| if c == '\x00' {' '} else {c})
+                    .map(|c| if c == '\x00' { ' ' } else { c })
                     .collect(),
                 Err(_) => match file_processor.get_value(&proc_path.join("comm")) {
                     Ok(string) => format!("[{}]", string),
-                    Err(_) => "<Unknown>".into()
-                }
+                    Err(_) => "<Unknown>".into(),
+                },
             };
 
             // Get stat
