@@ -77,6 +77,7 @@ impl Scene for ProcsHelpScene {
             add_key(&mut text, "Page Down".into(), "Move selection down a page.".into());
             add_key(&mut text, "Home".into(), "Move selection to the top.".into());
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
+            add_key(&mut text, "a".into(), "Toggle between processes and threads.".into());
             add_key(&mut text, "n".into(), "Sort by command. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "s".into(), "Sort by memory usage / PID. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "[".into(), "Move to previous statistic.".into());
@@ -108,7 +109,7 @@ impl Scene for ProcsHelpScene {
             }
             KeyCode::Down => self.scroll_help_down(),
             KeyCode::Up => self.scroll_help_up(),
-            _ => PollResult::None,
+            _ => None,
         }
     }
 }

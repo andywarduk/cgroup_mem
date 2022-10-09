@@ -175,9 +175,10 @@ impl<'a> Scene for ProcsScene<'a> {
             KeyCode::Char('s') => self.sort_stat(),
             KeyCode::Char('[') => self.next_stat(false),
             KeyCode::Char(']') => self.next_stat(true),
+            KeyCode::Char('a') => Some(vec![Action::ProcThreads(!self.threads), Action::Reload]),
             KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::ProcsHelp)]),
             KeyCode::Char('r') => Some(vec![Action::Reload]),
-            _ => PollResult::None,
+            _ => None,
         }
     }
 
