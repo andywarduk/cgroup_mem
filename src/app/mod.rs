@@ -18,19 +18,14 @@ use self::scenes::{
     Scene,
 };
 
-#[derive(PartialEq, Eq)]
-pub enum PollResult {
-    None,
-    Redraw,
-    Reload,
-    Exit,
-    Scene(AppScene),
-    SceneParms(AppScene, Vec<SceneChangeParm>),
-}
+type PollResult = Option<Vec<Action>>;
 
 #[derive(PartialEq, Eq)]
-pub enum SceneChangeParm {
+pub enum Action {
+    Reload,
+    Exit,
     Stat(usize),
+    Scene(AppScene),
     ProcCGroup(PathBuf),
     ProcThreads(bool),
     Sort(SortOrder),
@@ -48,6 +43,8 @@ pub enum AppScene {
 pub struct App<'a> {
     scene: AppScene,
     terminal: &'a mut TermType,
+    reload: bool,
+    running: bool,
     cgroup_tree_scene: Box<CGroupTreeScene<'a>>,
     cgroup_tree_help_scene: Box<CGroupTreeHelpScene>,
     stat_choose_scene: Box<StatChooseScene<'a>>,
@@ -61,6 +58,8 @@ impl<'a> App<'a> {
         let mut res = Self {
             scene: AppScene::CGroupTree,
             terminal,
+            reload: true,
+            running: true,
             cgroup_tree_scene: Box::new(CGroupTreeScene::new(args.debug)),
             cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new()),
             stat_choose_scene: Box::new(StatChooseScene::new()),
@@ -79,9 +78,7 @@ impl<'a> App<'a> {
 
     /// Main application loop
     pub fn run(&mut self) -> Result<(), io::Error> {
-        let mut reload = true;
-
-        loop {
+        while self.running {
             let scene: &mut dyn Scene = match self.scene {
                 AppScene::CGroupTree => &mut *self.cgroup_tree_scene,
                 AppScene::CgroupTreeHelp => &mut *self.cgroup_tree_help_scene,
@@ -90,49 +87,31 @@ impl<'a> App<'a> {
                 AppScene::ProcsHelp => &mut *self.procs_help_scene,
             };
 
-            if reload {
+            if self.reload {
                 // Reload the scene
                 scene.reload();
-                reload = false;
+                self.reload = false;
             }
 
             // Draw the scene
             scene.draw(self.terminal)?;
 
             // Poll events
-            match Self::poll(scene)? {
-                PollResult::Exit => break,
-                PollResult::Redraw => (),
-                PollResult::Reload => reload = true,
-                PollResult::Scene(scene) => {
-                    self.scene = scene;
-                    reload = true
-                }
-                PollResult::SceneParms(scene, parms) => {
-                    for parm in parms {
-                        match parm {
-                            SceneChangeParm::Stat(item) => self.set_stat(item),
-                            SceneChangeParm::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
-                            SceneChangeParm::ProcThreads(threads) => self.set_threads(threads),
-                            SceneChangeParm::Sort(sort) => self.set_sort(sort),
-                        }
-                    }
-                    self.scene = scene;
-                    reload = true
-                }
-                PollResult::None => unreachable!(),
-            }
+            let actions = Self::poll(scene)?;
+
+            // Process actions
+            self.process_actions(actions);
         }
 
         Ok(())
     }
 
-    fn poll(scene: &mut dyn Scene) -> Result<PollResult, io::Error> {
-        let mut result = PollResult::None;
-
-        while result == PollResult::None {
-            result = if let Some(poll_duration) = scene.time_to_refresh() {
-                if event::poll(poll_duration)? {
+    fn poll(scene: &mut dyn Scene) -> Result<Vec<Action>, io::Error> {
+        let result = loop {
+            let result = if let Some(duration) = scene.time_to_refresh() {
+                // Wait for event for timeout period
+                if event::poll(duration)? {
+                    // Got an event
                     match event::read()? {
                         Event::Key(key_event) => {
                             // A key was pressed
@@ -148,24 +127,47 @@ impl<'a> App<'a> {
                         }
                         Event::Resize(_, _) => {
                             // Break out to redraw
-                            PollResult::Redraw
+                            Some(vec![])
                         }
                         _ => {
                             // All other events are ignored
-                            PollResult::None
+                            None
                         }
                     }
                 } else {
                     // No event in the timeout period
-                    PollResult::Reload
+                    Some(vec![Action::Reload])
                 }
             } else {
                 // No time left
-                PollResult::Reload
+                Some(vec![Action::Reload])
+            };
+
+            if result.is_some() {
+                break result;
+            }
+        };
+
+        Ok(result.unwrap())
+    }
+
+    fn process_actions(&mut self, actions: Vec<Action>) {
+        for action in actions {
+            match action {
+                Action::Reload => self.reload = true,
+                Action::Exit => self.running = false,
+                Action::Scene(scene) => self.set_scene(scene),
+                Action::Stat(item) => self.set_stat(item),
+                Action::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
+                Action::ProcThreads(threads) => self.set_threads(threads),
+                Action::Sort(sort) => self.set_sort(sort),
             }
         }
+    }
 
-        Ok(result)
+    fn set_scene(&mut self, scene: AppScene) {
+        self.scene = scene;
+        self.reload = true;
     }
 
     fn set_stat(&mut self, stat: usize) {

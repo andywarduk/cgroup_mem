@@ -58,8 +58,7 @@ impl<'a> CGroupTree<'a> {
             None => "/".to_string(),
         };
 
-        // Make it bold
-        let path = Span::styled(pathstr, Style::default().add_modifier(Modifier::BOLD));
+        let path = Span::from(pathstr);
 
         Text::from(Spans::from(match cgroup.error() {
             Some(msg) => {
@@ -97,43 +96,43 @@ impl<'a> CGroupTree<'a> {
     #[must_use]
     pub fn left(&mut self) -> PollResult {
         self.state.key_left();
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn right(&mut self) -> PollResult {
         self.state.key_right();
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn down(&mut self) -> PollResult {
         self.state.key_down(&self.items);
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn up(&mut self) -> PollResult {
         self.state.key_up(&self.items);
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn first(&mut self) -> PollResult {
         self.state.select_first();
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn last(&mut self) -> PollResult {
         self.state.select_last(&self.items);
-        PollResult::Redraw
+        Some(vec![])
     }
 
     #[must_use]
     pub fn close_all(&mut self) -> PollResult {
         self.state.close_all();
-        PollResult::Redraw
+        Some(vec![])
     }
 
     pub fn selected(&self) -> Vec<usize> {

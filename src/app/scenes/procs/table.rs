@@ -7,9 +7,9 @@ use std::{
 use tui::{
     backend::CrosstermBackend,
     layout::Constraint,
-    style::{Style, Modifier, Color},
-    text::{Spans, Span},
-    widgets::{Row, TableState, Block, Table, Cell, Paragraph},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
+    widgets::{Block, Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
 
@@ -191,9 +191,9 @@ impl<'a> ProcsTable<'a> {
 
             if cur_row != new_row {
                 self.state.select(Some(new_row));
-                PollResult::Redraw
+                Some(vec![])
             } else {
-                PollResult::None
+                None
             }
         } else {
             // No row selected yet
@@ -204,7 +204,7 @@ impl<'a> ProcsTable<'a> {
     #[must_use]
     fn move_to(&mut self, new_row: isize) -> PollResult {
         if self.items.is_empty() {
-            return PollResult::None;
+            return None;
         }
 
         let new_row = if new_row < 0 {
@@ -221,7 +221,7 @@ impl<'a> ProcsTable<'a> {
 
         self.state.select(Some(new_row));
 
-        PollResult::Redraw
+        Some(vec![])
     }
 
     pub fn reset(&mut self) {

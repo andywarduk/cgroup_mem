@@ -11,8 +11,8 @@ use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
 use crate::{
-    app::{AppScene, PollResult, SceneChangeParm},
-    cgroup::SortOrder,
+    app::{Action, AppScene, PollResult},
+    cgroup::{SortOrder, stats::{STATS, ProcStatType}},
     TermType,
 };
 
@@ -33,6 +33,7 @@ pub struct ProcsScene<'a> {
 }
 
 impl<'a> ProcsScene<'a> {
+    /// Creates a new process scene
     pub fn new(debug: bool) -> Self {
         Self {
             debug,
@@ -68,6 +69,7 @@ impl<'a> ProcsScene<'a> {
         self.sort = sort;
     }
 
+    /// Set thread display (vs process display)
     pub fn set_threads(&mut self, threads: bool) {
         self.threads = threads
     }
@@ -78,10 +80,7 @@ impl<'a> ProcsScene<'a> {
             _ => SortOrder::NameAsc,
         };
 
-        PollResult::SceneParms(
-            AppScene::Procs,
-            vec![SceneChangeParm::Sort(new_sort)],
-        )
+        Some(vec![Action::Sort(new_sort)])
     }
 
     fn sort_stat(&mut self) -> PollResult {
@@ -90,10 +89,27 @@ impl<'a> ProcsScene<'a> {
             _ => SortOrder::SizeAsc,
         };
 
-        PollResult::SceneParms(
-            AppScene::Procs,
-            vec![SceneChangeParm::Sort(new_sort)],
-        )
+        Some(vec![Action::Sort(new_sort)])
+    }
+
+    fn next_stat(&self, up: bool) -> PollResult {
+        let mut new_stat = self.stat;
+
+        loop {
+            new_stat = if up {
+                (new_stat + 1) % STATS.len()
+            } else if new_stat == 0 {
+                STATS.len() - 1
+            } else {
+                new_stat - 1
+            };
+
+            if STATS[new_stat].proc_stat_type() != ProcStatType::None {
+                break
+            }
+        }
+
+        Some(vec![Action::Stat(new_stat), Action::Reload])
     }
 }
 
@@ -141,10 +157,9 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q')
-            | KeyCode::Esc
-            | KeyCode::Char('p')
-            | KeyCode::Char('t') => PollResult::Scene(AppScene::CGroupTree),
+            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('p') | KeyCode::Char('t') => {
+                Some(vec![Action::Scene(AppScene::CGroupTree)])
+            }
             KeyCode::Up => self.table.up(),
             KeyCode::Down => self.table.down(),
             KeyCode::PageUp => self.table.pgup(),
@@ -153,8 +168,10 @@ impl<'a> Scene for ProcsScene<'a> {
             KeyCode::End => self.table.end(),
             KeyCode::Char('n') => self.sort_name(),
             KeyCode::Char('s') => self.sort_stat(),
-            KeyCode::Char('h') => PollResult::Scene(AppScene::ProcsHelp),
-            KeyCode::Char('r') => PollResult::Reload,
+            KeyCode::Char('[') => self.next_stat(false),
+            KeyCode::Char(']') => self.next_stat(true),
+            KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::ProcsHelp)]),
+            KeyCode::Char('r') => Some(vec![Action::Reload]),
             _ => PollResult::None,
         }
     }

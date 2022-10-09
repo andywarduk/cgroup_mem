@@ -97,7 +97,9 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
 }
 
 fn list_stats() {
+    println!("Available statistics:");
+
     for (i, s) in STATS.iter().enumerate() {
-        println!("{:>2}: {}", i + 1, s.desc());
+        println!("  {:>2}: {}", i + 1, s.desc());
     }
 }

@@ -9,7 +9,7 @@ use tui::{
 };
 
 use crate::{
-    app::{AppScene, PollResult},
+    app::{Action, AppScene, PollResult},
     TermType,
 };
 
@@ -27,18 +27,18 @@ impl CGroupTreeHelpScene {
     fn scroll_help_up(&mut self) -> PollResult {
         if self.help_scroll > 0 {
             self.help_scroll -= 1;
-            PollResult::Redraw
+            Some(vec![])
         } else {
-            PollResult::None
+            None
         }
     }
 
     fn scroll_help_down(&mut self) -> PollResult {
         if self.help_scroll < u16::MAX {
             self.help_scroll += 1;
-            PollResult::Redraw
+            Some(vec![])
         } else {
-            PollResult::None
+            None
         }
     }
 }
@@ -81,6 +81,8 @@ impl Scene for CGroupTreeHelpScene {
             add_key(&mut text, "s".into(), "Sort by memory usage. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "c".into(), "Collapse all expanded nodes.".into());
             add_key(&mut text, "z".into(), "Select statistic to show.".into());
+            add_key(&mut text, "[".into(), "Move to previous statistic.".into());
+            add_key(&mut text, "]".into(), "Move to next statistic.".into());
             add_key(&mut text, "p".into(), "Show processes for the selected cgroup.".into());
             add_key(&mut text, "t".into(), "Show threads for the selected cgroup.".into());
             add_key(&mut text, "r".into(), "Refresh the list.".into());
@@ -105,9 +107,9 @@ impl Scene for CGroupTreeHelpScene {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q')
-            | KeyCode::Char('h')
-            | KeyCode::Esc => PollResult::Scene(AppScene::CGroupTree),
+            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
+                Some(vec![Action::Scene(AppScene::CGroupTree)])
+            }
             KeyCode::Down => self.scroll_help_down(),
             KeyCode::Up => self.scroll_help_up(),
             _ => PollResult::None,

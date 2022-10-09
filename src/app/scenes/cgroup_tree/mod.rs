@@ -9,7 +9,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
 use crate::{
-    app::{AppScene, PollResult, SceneChangeParm},
+    app::{Action, AppScene, PollResult},
     cgroup::{
         stats::{StatType, STATS},
         SortOrder,
@@ -61,10 +61,7 @@ impl<'a> CGroupTreeScene<'a> {
             _ => SortOrder::NameAsc,
         };
 
-        PollResult::SceneParms(
-            AppScene::CGroupTree,
-            vec![SceneChangeParm::Sort(new_sort)],
-        )
+        Some(vec![Action::Sort(new_sort)])
     }
 
     fn sort_stat(&mut self) -> PollResult {
@@ -73,24 +70,29 @@ impl<'a> CGroupTreeScene<'a> {
             _ => SortOrder::SizeAsc,
         };
 
-        PollResult::SceneParms(
-            AppScene::CGroupTree,
-            vec![SceneChangeParm::Sort(new_sort)],
-        )
+        Some(vec![Action::Sort(new_sort)])
+    }
+
+    fn next_stat(&self, up: bool) -> PollResult {
+        let new_stat = if up {
+            (self.stat + 1) % STATS.len()
+        } else if self.stat == 0 {
+            STATS.len() - 1
+        } else {
+            self.stat - 1
+        };
+
+        Some(vec![Action::Stat(new_stat), Action::Reload])
     }
 
     fn procs(&mut self, threads: bool) -> PollResult {
-        if let Some(cgroup) = self.tree.cgroup() {
-            PollResult::SceneParms(
-                AppScene::Procs,
-                vec![
-                    SceneChangeParm::ProcCGroup(cgroup.path().clone()),
-                    SceneChangeParm::ProcThreads(threads),
-                ],
-            )
-        } else {
-            PollResult::None
-        }
+        self.tree.cgroup().map(|cgroup| {
+            vec![
+                Action::ProcCGroup(cgroup.path().clone()),
+                Action::ProcThreads(threads),
+                Action::Scene(AppScene::Procs),
+            ]
+        })
     }
 }
 
@@ -139,7 +141,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => PollResult::Exit,
+            KeyCode::Char('q') | KeyCode::Esc => Some(vec![Action::Exit]),
             KeyCode::Left => self.tree.left(),
             KeyCode::Right => self.tree.right(),
             KeyCode::Down => self.tree.down(),
@@ -147,13 +149,15 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             KeyCode::Home => self.tree.first(),
             KeyCode::End => self.tree.last(),
             KeyCode::Char('c') => self.tree.close_all(),
-            KeyCode::Char('r') => PollResult::Reload,
+            KeyCode::Char('r') => Some(vec![Action::Reload]),
             KeyCode::Char('n') => self.sort_name(),
             KeyCode::Char('s') => self.sort_stat(),
             KeyCode::Char('p') => self.procs(false),
             KeyCode::Char('t') => self.procs(true),
-            KeyCode::Char('z') => PollResult::Scene(AppScene::StatChoose),
-            KeyCode::Char('h') => PollResult::Scene(AppScene::CgroupTreeHelp),
+            KeyCode::Char('z') => Some(vec![Action::Scene(AppScene::StatChoose)]),
+            KeyCode::Char('[') => self.next_stat(false),
+            KeyCode::Char(']') => self.next_stat(true),
+            KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::CgroupTreeHelp)]),
             _ => PollResult::None,
         }
     }

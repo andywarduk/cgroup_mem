@@ -4,11 +4,11 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use tui::{
     style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    widgets::{Block, Borders, List, ListItem, ListState}, text::{Spans, Span},
 };
 
 use crate::{
-    app::{AppScene, PollResult, SceneChangeParm},
+    app::{Action, AppScene, PollResult},
     cgroup::stats::STATS,
     TermType,
 };
@@ -25,7 +25,13 @@ impl<'a> StatChooseScene<'a> {
         // Build list items
         let items = STATS
             .iter()
-            .map(|stat| ListItem::new(stat.desc()))
+            .enumerate()
+            .map(|(i, stat)| {
+                ListItem::new(Spans::from(vec![
+                    Span::styled(format!(" {:>2} ", i + 1), Style::default().add_modifier(Modifier::DIM)),
+                    Span::from(stat.desc()),
+                ]))
+            })
             .collect();
 
         Self {
@@ -43,13 +49,13 @@ impl<'a> StatChooseScene<'a> {
         if let Some(cur) = self.state.selected() {
             if cur > 0 {
                 self.state.select(Some(cur - 1));
-                PollResult::Redraw
+                Some(vec![])
             } else {
-                PollResult::None
+                None
             }
         } else {
             self.state.select(Some(self.items.len() - 1));
-            PollResult::Redraw
+            Some(vec![])
         }
     }
 
@@ -58,26 +64,21 @@ impl<'a> StatChooseScene<'a> {
         if let Some(cur) = self.state.selected() {
             if cur < self.items.len() - 1 {
                 self.state.select(Some(cur + 1));
-                PollResult::Redraw
+                Some(vec![])
             } else {
-                PollResult::None
+                None
             }
         } else {
             self.state.select(Some(0));
-            PollResult::Redraw
+            Some(vec![])
         }
     }
 
     #[must_use]
     fn select(&mut self) -> PollResult {
-        if let Some(selected) = self.state.selected() {
-            PollResult::SceneParms(
-                AppScene::CGroupTree,
-                vec![SceneChangeParm::Stat(selected)],
-            )
-        } else {
-            PollResult::None
-        }
+        self.state
+            .selected()
+            .map(|selected| vec![Action::Stat(selected), Action::Scene(AppScene::CGroupTree)])
     }
 }
 
@@ -109,9 +110,9 @@ impl<'a> Scene for StatChooseScene<'a> {
     /// Key events
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q')
-            | KeyCode::Char('h')
-            | KeyCode::Esc => PollResult::Scene(AppScene::CGroupTree),
+            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
+                Some(vec![Action::Scene(AppScene::CGroupTree)])
+            }
             KeyCode::Down => self.down(),
             KeyCode::Up => self.up(),
             KeyCode::Enter | KeyCode::Char(' ') => self.select(),
