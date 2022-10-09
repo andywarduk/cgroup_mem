@@ -112,7 +112,7 @@ impl Scene for CGroupTreeHelpScene {
             }
             KeyCode::Down => self.scroll_help_down(),
             KeyCode::Up => self.scroll_help_up(),
-            _ => PollResult::None,
+            _ => None,
         }
     }
 }

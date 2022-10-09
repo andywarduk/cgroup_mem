@@ -123,7 +123,7 @@ impl<'a> App<'a> {
                             match mouse_event.kind {
                                 MouseEventKind::ScrollDown => scene.key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
                                 MouseEventKind::ScrollUp => scene.key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)),
-                                _ => PollResult::None,
+                                _ => None,
                             }
                         }
                         Event::Resize(_, _) => {

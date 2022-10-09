@@ -119,7 +119,7 @@ impl<'a> Scene for StatChooseScene<'a> {
             KeyCode::Down => self.down(),
             KeyCode::Up => self.up(),
             KeyCode::Enter | KeyCode::Char(' ') => self.select(),
-            _ => PollResult::None,
+            _ => None,
         }
     }
 }

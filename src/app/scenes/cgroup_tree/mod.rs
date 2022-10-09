@@ -161,7 +161,7 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             KeyCode::Char('[') => self.next_stat(false),
             KeyCode::Char(']') => self.next_stat(true),
             KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::CgroupTreeHelp)]),
-            _ => PollResult::None,
+            _ => None,
         }
     }
 }
