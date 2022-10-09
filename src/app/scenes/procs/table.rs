@@ -38,33 +38,45 @@ pub struct ProcsTable<'a> {
 impl<'a> ProcsTable<'a> {
     /// Build table
     pub fn build_table(&mut self, cgroup2fs: &Path, cgroup: &Path, threads: bool, stat: usize, sort: SortOrder) {
+        // Get currently selected PID
+        let old_selected_pid = self.selected().map(|i| self.procs[i].pid);
+
+        // Unselect
+        self.state.select(None);
+
         // Load process information
         match load_procs(cgroup2fs, cgroup, threads, stat, sort) {
             Ok(procs) => {
                 self.procs = procs;
                 self.error = None;
-                (self.header, self.widths, self.items) = Self::build_table_cells(&self.procs, threads, stat);
             }
             Err(e) => {
                 self.procs = Vec::new();
                 self.error = Some(e.to_string());
-                self.items = Vec::new();
             }
+        }
+
+        // Build table cells
+        self.build_table_cells(threads, stat);
+
+        // Re-select PID if we had one and it's still there
+        if let Some(old_pid) = old_selected_pid {
+            self.state.select(self.procs.iter().position(|p| p.pid == old_pid));
         }
     }
 
     fn build_table_cells(
-        procs: &[Proc],
+        &mut self,
         threads: bool,
         stat: usize,
-    ) -> (Row<'a>, Vec<Constraint>, Vec<Row<'a>>) {
+    ) {
         let mut header_cells = Vec::new();
         let mut widths = Vec::new();
 
         // Calculate max PID length
         let pid_len = cmp::max(
             3,
-            procs
+            self.procs
                 .iter()
                 .map(|p| format!("{}", p.pid).len())
                 .max()
@@ -74,7 +86,7 @@ impl<'a> ProcsTable<'a> {
         // Calculate max command length
         let cmd_len = cmp::max(
             7,
-            procs
+            self.procs
                 .iter()
                 .map(|p| p.cmd.len())
                 .max()
@@ -105,7 +117,7 @@ impl<'a> ProcsTable<'a> {
             .height(1);
 
         // Build body
-        let body_rows = procs
+        let body_rows = self.procs
             .iter()
             .map(|proc| {
                 let mut cells = Vec::new();
@@ -131,7 +143,9 @@ impl<'a> ProcsTable<'a> {
             })
             .collect();
 
-        (header, widths, body_rows)
+        self.header = header;
+        self.widths = widths;
+        self.items = body_rows;
     }
 
     pub fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, block: Block) {
@@ -195,7 +209,7 @@ impl<'a> ProcsTable<'a> {
     #[must_use]
     fn move_by(&mut self, amount: isize) -> PollResult {
         if amount == 0 || self.items.is_empty() {
-            return PollResult::None;
+            return None;
         }
 
         if let Some(cur_row) = self.state.selected() {
