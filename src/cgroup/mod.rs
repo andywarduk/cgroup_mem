@@ -61,17 +61,12 @@ pub enum SortOrder {
     SizeDsc,
 }
 
-pub fn cgroup_fs_path() -> PathBuf {
-    PathBuf::from("/sys/fs/cgroup")
-}
-
-pub fn load_cgroups(stat: usize, sort: SortOrder) -> Vec<CGroup> {
-    let abs_path = cgroup_fs_path();
+pub fn load_cgroups(cgroup2fs: &Path, stat: usize, sort: SortOrder) -> Vec<CGroup> {
     let rel_path = PathBuf::new();
 
     let processor = get_file_processor(STATS[stat].def()).unwrap();
 
-    match load_cgroup_rec(abs_path, &rel_path, sort, stat, &*processor) {
+    match load_cgroup_rec(cgroup2fs.to_path_buf(), &rel_path, sort, stat, &*processor) {
         Ok(cgroup) => {
             if cgroup.error.is_some() && !cgroup.children.is_empty() {
                 // Handle case where this is no file in the root directory

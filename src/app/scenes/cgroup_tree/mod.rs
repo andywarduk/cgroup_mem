@@ -2,6 +2,7 @@ mod tree;
 
 use std::{
     io,
+    path::Path,
     time::{Duration, Instant},
 };
 
@@ -23,6 +24,7 @@ use super::Scene;
 
 pub struct CGroupTreeScene<'a> {
     debug: bool,
+    cgroup2fs: &'a Path,
     tree: CGroupTree<'a>,
     next_refresh: Instant,
     draws: usize,
@@ -33,9 +35,10 @@ pub struct CGroupTreeScene<'a> {
 
 impl<'a> CGroupTreeScene<'a> {
     /// Creates a new cgroup tree scene
-    pub fn new(debug: bool) -> Self {
+    pub fn new(cgroup2fs: &'a Path, debug: bool) -> Self {
         Self {
             debug,
+            cgroup2fs,
             tree: Default::default(),
             next_refresh: Instant::now(),
             draws: 0,
@@ -99,7 +102,7 @@ impl<'a> CGroupTreeScene<'a> {
 impl<'a> Scene for CGroupTreeScene<'a> {
     fn reload(&mut self) {
         // Build the tree
-        self.tree.build_tree(self.stat, self.sort);
+        self.tree.build_tree(self.cgroup2fs, self.stat, self.sort);
         self.loads += 1;
 
         // Calculate next refresh time

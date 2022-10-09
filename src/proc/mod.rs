@@ -1,17 +1,19 @@
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::{
     cgroup::{
-        cgroup_fs_path,
         stats::{ProcStatType, STATS},
         SortOrder,
     },
     file_proc::{
-        get_file_processor, single_value::SingleValueProcessor, FileProcessor, FileProcessorError,
+        get_file_processor,
+        FileProcessor,
+        FileProcessorError,
+        SingleValueProcessor,
     },
 };
 
@@ -22,13 +24,14 @@ pub struct Proc {
 }
 
 pub fn load_procs(
-    cgroup: &PathBuf,
+    cgroup2fs: &Path,
+    cgroup: &Path,
     threads: bool,
     stat: usize,
     sort: SortOrder,
 ) -> io::Result<Vec<Proc>> {
     // Get PID list
-    let mut path = cgroup_fs_path();
+    let mut path = cgroup2fs.to_path_buf();
     path.extend(cgroup);
 
     let pids = load_pids(path, threads)?;

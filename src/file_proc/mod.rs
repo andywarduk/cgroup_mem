@@ -1,6 +1,6 @@
-pub mod count;
-pub mod keyed;
-pub mod single_value;
+mod count;
+mod keyed;
+mod single_value;
 
 use std::{
     fmt::Display,
@@ -9,7 +9,7 @@ use std::{
     path::Path,
 };
 
-use self::{count::CountProcessor, keyed::KeyedProcessor, single_value::SingleValueProcessor};
+pub use self::{count::CountProcessor, keyed::KeyedProcessor, single_value::SingleValueProcessor};
 
 pub trait FileProcessor {
     fn get_value(&self, path: &Path) -> Result<String, FileProcessorError>;
@@ -53,21 +53,54 @@ impl From<ParseIntError> for FileProcessorError {
 pub fn get_file_processor(def: &str) -> Option<Box<dyn FileProcessor>> {
     let split: Vec<&str> = def.split('/').collect();
 
-    let result: Option<Box<dyn FileProcessor>> = if split.len() == 1 && !split[0].is_empty() {
+    // Sanity check
+    if split.is_empty() || split[0].is_empty() {
+        return None
+    }
+
+    if split.len() == 1 {
+        // Format is "filename" for single value processor
         let mut proc = SingleValueProcessor::new();
         proc.set_file(split[0]);
-        Some(Box::new(proc))
-    } else if split.len() == 3 && split[1].starts_with('=') {
-        let mut proc = KeyedProcessor::new(&split[1][1..], split[2]);
-        proc.set_file(split[0]);
-        Some(Box::new(proc))
-    } else if split.len() == 2 && split[1] == "#" {
-        let mut proc = CountProcessor::new();
-        proc.set_file(split[0]);
-        Some(Box::new(proc))
-    } else {
-        None
-    };
+        return Some(Box::new(proc))
+    }
 
-    result
+    match split[1] {
+        "=" => {
+            // Format is "filename/=/<matchcol>/<string>/<retcol>" for keyed processor
+            // Columns are counted from 1
+            if split.len() != 5 || split[3].is_empty() {
+                return None;
+            }
+
+            let match_col = split[2].parse::<usize>();
+            let ret_col = split[4].parse::<usize>();
+
+            if match_col.is_err() || ret_col.is_err() {
+                return None;
+            }
+
+            let match_col = match_col.unwrap();
+            let ret_col = ret_col.unwrap();
+
+            if match_col == 0 || ret_col == 0 {
+                return None;
+            }
+
+            let mut proc = KeyedProcessor::new(match_col, split[3], ret_col);
+            proc.set_file(split[0]);
+            Some(Box::new(proc))        
+        }
+        "#" => {
+            // Format is "filename/#" for line count processor
+            if split.len() != 2 {
+                return None
+            }
+
+            let mut proc = CountProcessor::new();
+            proc.set_file(split[0]);
+            Some(Box::new(proc))        
+        }
+        _ => None,
+    }
 }

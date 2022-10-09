@@ -1,7 +1,7 @@
 use std::{
     cmp,
     io::Stdout,
-    path::PathBuf,
+    path::Path,
 };
 
 use tui::{
@@ -19,6 +19,7 @@ use crate::{
         stats::{ProcStatType, STATS},
         SortOrder,
     },
+    file_proc::FileProcessorError,
     formatters::format_mem_qty,
     proc::{load_procs, Proc},
 };
@@ -36,9 +37,9 @@ pub struct ProcsTable<'a> {
 
 impl<'a> ProcsTable<'a> {
     /// Build table
-    pub fn build_table(&mut self, cgroup: &PathBuf, threads: bool, stat: usize, sort: SortOrder) {
+    pub fn build_table(&mut self, cgroup2fs: &Path, cgroup: &Path, threads: bool, stat: usize, sort: SortOrder) {
         // Load process information
-        match load_procs(cgroup, threads, stat, sort) {
+        match load_procs(cgroup2fs, cgroup, threads, stat, sort) {
             Ok(procs) => {
                 self.procs = procs;
                 self.error = None;
@@ -114,7 +115,13 @@ impl<'a> ProcsTable<'a> {
                 if STATS[stat].proc_stat_type() != ProcStatType::None {
                     cells.push(Cell::from(Spans::from(match &proc.stat {
                         Ok(value) => format_mem_qty(*value),
-                        Err(_) => vec![Span::styled("<Error>", Style::default().fg(Color::Red))],
+                        Err(e) => {
+                            let msg = match e {
+                                FileProcessorError::ValueNotFound => "<None>",
+                                _ => "<Error>"
+                            };
+                            vec![Span::styled(msg, Style::default().fg(Color::Red))]
+                        }
                     })));
                 }
 

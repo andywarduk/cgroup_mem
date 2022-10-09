@@ -1,4 +1,7 @@
-use std::{io::Stdout, path::PathBuf};
+use std::{
+    io::Stdout,
+    path::{PathBuf, Path},
+};
 
 use tui::{
     backend::CrosstermBackend,
@@ -29,7 +32,7 @@ pub struct CGroupTree<'a> {
 
 impl<'a> CGroupTree<'a> {
     /// Build tree
-    pub fn build_tree(&mut self, stat: usize, sort: SortOrder) {
+    pub fn build_tree(&mut self, cgroup2fs: &Path, stat: usize, sort: SortOrder) {
         // Save currently selected node path
         let selected = self.cgroup().map(|cg| cg.path().clone());
 
@@ -47,7 +50,7 @@ impl<'a> CGroupTree<'a> {
         self.state.select(vec![]);
 
         // Load cgroup information
-        let cgroups = load_cgroups(stat, sort);
+        let cgroups = load_cgroups(cgroup2fs, stat, sort);
 
         // Build tree items
         let items = self.build_tree_level(&cgroups, stat, &selected, &opened, vec![]);

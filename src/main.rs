@@ -8,23 +8,24 @@ mod file_proc;
 mod formatters;
 mod proc;
 
-use std::io;
-
-use cgroup::stats::STATS;
 use clap::Parser;
-
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-
+use std::{
+    io,
+    path::PathBuf,
+};
 use tui::{
     backend::CrosstermBackend,
     Terminal,
 };
 
 use app::App;
+use cgroup::stats::STATS;
+use file_proc::{KeyedProcessor, FileProcessor};
 
 /// Command line arguments
 #[derive(Parser, Debug)]
@@ -52,11 +53,20 @@ fn main() -> Result<(), io::Error> {
         return Ok(());
     }
 
+    // Try and find path to the cgroup2 mount in /proc/mounts
+    let cgroup2fs = match get_cgroup2_mount_point() {
+        Some(path) => path,
+        None => {
+            eprintln!("Unable to find the mount point for the cgroup2 file system");
+            std::process::exit(1);
+        },
+    };
+
     // Set up terminal
     match setup_terminal() {
         Ok(mut terminal) => {
             // Run the application
-            let mut app = App::new(&mut terminal, (args.stat - 1) as usize, args.debug);
+            let mut app = App::new(&mut terminal, &cgroup2fs, (args.stat - 1) as usize, args.debug);
 
             let res = app.run();
 
@@ -97,6 +107,15 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
     }
 
     Ok(())
+}
+
+fn get_cgroup2_mount_point() -> Option<PathBuf> {
+    let file_proc = KeyedProcessor::new(3, "cgroup2", 2);
+
+    match file_proc.get_value(&PathBuf::from("/proc/mounts")) {
+        Ok(path) => Some(PathBuf::from(path)),
+        Err(_) => None,
+    }
 }
 
 fn list_stats() {

@@ -9,16 +9,18 @@ use super::{FileProcessor, FileProcessorError};
 #[derive(Default)]
 pub struct KeyedProcessor {
     file: Option<String>,
-    match_string: String,
+    match_col: usize,
+    match_val: String,
     ret_col: usize,
 }
 
 impl KeyedProcessor {
-    pub fn new(line_start: &str, ret_col: &str) -> Self {
+    pub fn new(match_col: usize, match_val: &str, ret_col: usize) -> Self {
         Self {
             file: None,
-            match_string: line_start.into(),
-            ret_col: ret_col.parse::<usize>().unwrap(),
+            match_col,
+            match_val: match_val.into(),
+            ret_col,
         }
     }
 
@@ -44,7 +46,7 @@ impl FileProcessor for KeyedProcessor {
 
             let columns: Vec<&str> = line.split_whitespace().collect();
 
-            if columns[0].starts_with(&self.match_string) {
+            if self.match_col < columns.len() && columns[self.match_col - 1] == self.match_val {
                 if self.ret_col > columns.len() {
                     return Err(FileProcessorError::ValueNotFound);
                 } else {

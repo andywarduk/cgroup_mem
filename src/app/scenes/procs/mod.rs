@@ -3,7 +3,7 @@ mod table;
 use std::{
     ffi::OsStr,
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
@@ -25,6 +25,7 @@ use super::Scene;
 
 pub struct ProcsScene<'a> {
     debug: bool,
+    cgroup2fs: &'a Path,
     cgroup: PathBuf,
     sort: SortOrder,
     stat: usize,
@@ -37,9 +38,10 @@ pub struct ProcsScene<'a> {
 
 impl<'a> ProcsScene<'a> {
     /// Creates a new process scene
-    pub fn new(debug: bool) -> Self {
+    pub fn new(cgroup2fs: &'a Path, debug: bool) -> Self {
         Self {
             debug,
+            cgroup2fs,
             cgroup: PathBuf::new(),
             sort: SortOrder::NameAsc,
             stat: 0,
@@ -120,7 +122,7 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Reloads the process scene
     fn reload(&mut self) {
         // Build the tree
-        self.table.build_table(&self.cgroup, self.threads, self.stat, self.sort);
+        self.table.build_table(self.cgroup2fs, &self.cgroup, self.threads, self.stat, self.sort);
         self.loads += 1;
 
         // Calculate next refresh time

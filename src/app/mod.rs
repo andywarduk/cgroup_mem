@@ -1,9 +1,10 @@
 mod scenes;
 
-use std::io;
-use std::path::PathBuf;
-
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use crate::cgroup::SortOrder;
 
@@ -54,16 +55,16 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     /// Creates the app
-    pub fn new(terminal: &'a mut TermType, stat: usize, debug: bool) -> Self {
+    pub fn new(terminal: &'a mut TermType, cgroup2fs: &'a Path, stat: usize, debug: bool) -> Self {
         let mut res = Self {
             scene: AppScene::CGroupTree,
             terminal,
             reload: true,
             running: true,
-            cgroup_tree_scene: Box::new(CGroupTreeScene::new(debug)),
+            cgroup_tree_scene: Box::new(CGroupTreeScene::new(cgroup2fs, debug)),
             cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new()),
             stat_choose_scene: Box::new(StatChooseScene::new()),
-            procs_scene: Box::new(ProcsScene::new(debug)),
+            procs_scene: Box::new(ProcsScene::new(cgroup2fs, debug)),
             procs_help_scene: Box::new(ProcsHelpScene::new()),
         };
 
