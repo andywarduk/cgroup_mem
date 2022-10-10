@@ -64,6 +64,8 @@ impl<'a> ProcsTable<'a> {
         // Re-select PID if we had one and it's still there
         if let Some(old_pid) = old_selected_pid {
             self.state.select(self.procs.iter().position(|p| p.pid == old_pid));
+        } else {
+            self.state.select(None);
         }
     }
 

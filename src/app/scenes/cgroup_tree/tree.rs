@@ -53,11 +53,24 @@ impl<'a> CGroupTree<'a> {
         let cgroups = load_cgroups(cgroup2fs, stat, sort);
 
         // Build tree items
-        let items = self.build_tree_level(&cgroups, stat, &old_selected, &old_opened, vec![]);
+        let (select, items) = self.build_tree_level(
+            &cgroups,
+            stat,
+            &old_selected,
+            &old_opened,
+            vec![],
+        );
 
         // Save the vectors
         self.cgroups = cgroups;
         self.items = items;
+
+        // Select the new node if any
+        if let Some(select) = select {
+            self.state.select(select);
+        } else {
+            self.state.select(vec!());
+        }
 
         // Expand the root node is we're switching to a view with a single root node
         if self.items.len() == 1 {
@@ -77,7 +90,8 @@ impl<'a> CGroupTree<'a> {
         old_selected: &Option<PathBuf>,
         old_opened: &Vec<PathBuf>,
         cur_item: Vec<usize>,
-    ) -> Vec<TreeItem<'a>> {
+    ) -> (Option<Vec<usize>>, Vec<TreeItem<'a>>) {
+        let mut select = None;
         let mut tree_items = Vec::new();
 
         for (i, cg) in cgroups.iter().enumerate() {
@@ -94,7 +108,7 @@ impl<'a> CGroupTree<'a> {
             if let Some(selected) = old_selected {
                 if selected == path {
                     // Yes - select it
-                    self.state.select(next.clone())
+                    select = Some(next.clone());
                 }
             }
 
@@ -108,13 +122,23 @@ impl<'a> CGroupTree<'a> {
             }
 
             // Process sub nodes
-            let sub_nodes = self.build_tree_level(cg.children(), stat, old_selected, old_opened, next);
+            let (sub_select, sub_nodes) = self.build_tree_level(
+                cg.children(),
+                stat,
+                old_selected,
+                old_opened,
+                next,
+            );
+
+            if sub_select.is_some() {
+                select = sub_select;
+            }
 
             // Push this item
             tree_items.push(TreeItem::new(text, sub_nodes));
         }
 
-        tree_items
+        (select, tree_items)
     }
 
     #[must_use]
