@@ -16,7 +16,7 @@ const COLOURS: [Color; 7] = [
     Color::LightRed,
 ];
 
-pub fn format_mem_qty(bytes: usize) -> Vec<Span<'static>> {
+pub fn format_mem_qty(bytes: usize) -> Span<'static> {
     let mut fbytes = bytes as f64;
     let mut power = 0;
 
@@ -34,10 +34,10 @@ pub fn format_mem_qty(bytes: usize) -> Vec<Span<'static>> {
         0
     };
 
-    vec![Span::styled(format!("{:>5.*} {}", dp, fbytes, POWERS[power]), style)]
+    Span::styled(format!("{:>5.*} {}", dp, fbytes, POWERS[power]), style)
 }
 
-pub fn format_qty(qty: usize) -> Vec<Span<'static>> {
+pub fn format_qty(qty: usize) -> Span<'static> {
     let mut fqty = qty as f64;
     let mut power = 0;
 
@@ -55,5 +55,5 @@ pub fn format_qty(qty: usize) -> Vec<Span<'static>> {
         0
     };
 
-    vec![Span::styled(format!("{:>4.*} {}", dp, fqty, POWERS[power]), style)]
+    Span::styled(format!("{:>4.*} {}", dp, fqty, POWERS[power]), style)
 }

@@ -13,8 +13,9 @@ use crate::{
     app::{Action, AppScene, PollResult},
     cgroup::{
         stats::{StatType, STATS},
-        SortOrder,
+        CGroupSortOrder,
     },
+    proc::ProcSortOrder,
     TermType,
 };
 
@@ -29,7 +30,7 @@ pub struct CGroupTreeScene<'a> {
     next_refresh: Instant,
     draws: usize,
     loads: usize,
-    sort: SortOrder,
+    sort: CGroupSortOrder,
     stat: usize,
 }
 
@@ -43,7 +44,7 @@ impl<'a> CGroupTreeScene<'a> {
             next_refresh: Instant::now(),
             draws: 0,
             loads: 0,
-            sort: SortOrder::NameAsc,
+            sort: CGroupSortOrder::NameAsc,
             stat: 0,
         }
     }
@@ -54,26 +55,37 @@ impl<'a> CGroupTreeScene<'a> {
     }
 
     /// Sets the sort order to use
-    pub fn set_sort(&mut self, sort: SortOrder) {
+    pub fn set_sort(&mut self, sort: CGroupSortOrder) {
         self.sort = sort;
+    }
+
+    /// Sets the sort order to use
+    pub fn set_proc_sort(&mut self, sort: ProcSortOrder) {
+        match sort {
+            ProcSortOrder::StatAsc => self.sort = CGroupSortOrder::StatAsc,
+            ProcSortOrder::StatDsc => self.sort = CGroupSortOrder::StatDsc,
+            ProcSortOrder::CmdAsc => self.sort = CGroupSortOrder::NameAsc,
+            ProcSortOrder::CmdDsc => self.sort = CGroupSortOrder::NameDsc,
+            _ => (),
+        }
     }
 
     fn sort_name(&mut self) -> PollResult {
         let new_sort = match self.sort {
-            SortOrder::NameAsc => SortOrder::NameDsc,
-            _ => SortOrder::NameAsc,
+            CGroupSortOrder::NameAsc => CGroupSortOrder::NameDsc,
+            _ => CGroupSortOrder::NameAsc,
         };
 
-        Some(vec![Action::Sort(new_sort), Action::Reload])
+        Some(vec![Action::CGroupSort(new_sort), Action::Reload])
     }
 
     fn sort_stat(&mut self) -> PollResult {
         let new_sort = match self.sort {
-            SortOrder::SizeAsc => SortOrder::SizeDsc,
-            _ => SortOrder::SizeAsc,
+            CGroupSortOrder::StatAsc => CGroupSortOrder::StatDsc,
+            _ => CGroupSortOrder::StatAsc,
         };
 
-        Some(vec![Action::Sort(new_sort), Action::Reload])
+        Some(vec![Action::CGroupSort(new_sort), Action::Reload])
     }
 
     fn next_stat(&self, up: bool) -> PollResult {
@@ -88,11 +100,11 @@ impl<'a> CGroupTreeScene<'a> {
         Some(vec![Action::Stat(new_stat), Action::Reload])
     }
 
-    fn procs(&mut self, threads: bool) -> PollResult {
+    fn procs(&mut self, threads: bool, include_children: bool) -> PollResult {
         self.tree.cgroup().map(|cgroup| {
             vec![
                 Action::ProcCGroup(cgroup.path().clone()),
-                Action::ProcThreads(threads),
+                Action::ProcMode(threads, include_children),
                 Action::Scene(AppScene::Procs),
             ]
         })
@@ -119,7 +131,18 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             StatType::Qty => "Count",
         };
 
-        let mut title = format!("CGroup {} {} (press 'h' for help)", STATS[self.stat].short_desc(), qty_desc);
+        let sort_desc = match self.sort {
+            CGroupSortOrder::NameAsc => "Name Ascending",
+            CGroupSortOrder::NameDsc => "Name Descending",
+            CGroupSortOrder::StatAsc => "Size Ascending",
+            CGroupSortOrder::StatDsc => "Size Descending",
+        };
+
+        let mut title = format!("CGroup {} {} by {} (press 'h' for help)",
+            STATS[self.stat].short_desc(),
+            qty_desc,
+            sort_desc,
+        );
 
         if self.debug {
             title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
@@ -155,8 +178,10 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             KeyCode::Char('r') => Some(vec![Action::Reload]),
             KeyCode::Char('n') => self.sort_name(),
             KeyCode::Char('s') => self.sort_stat(),
-            KeyCode::Char('p') => self.procs(false),
-            KeyCode::Char('t') => self.procs(true),
+            KeyCode::Char('p') => self.procs(false, false),
+            KeyCode::Char('t') => self.procs(true, false),
+            KeyCode::Char('P') => self.procs(false, true),
+            KeyCode::Char('T') => self.procs(true, true),
             KeyCode::Char('z') => Some(vec![Action::Scene(AppScene::StatChoose)]),
             KeyCode::Char('[') => self.next_stat(false),
             KeyCode::Char(']') => self.next_stat(true),

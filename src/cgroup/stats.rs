@@ -62,14 +62,14 @@ pub const STATS: [Stat; 17] = [
         "memory.stat/=/1/shmem/2", "Swap Backed", 
         "Amount of cached filesystem data that is swap-backed.", 
         StatType::MemQtyCumul,
-        "status/=RssShmem/2", "RSS ShMem",
+        "status/=RssShmem:/2", "RSS ShMem",
         ProcStatType::MemQtyKb,
     ),
     Stat::new(
         "memory.stat/=/1/file_mapped/2", "File Mapped", 
         "Amount of cached filesystem data mapped.", 
         StatType::MemQtyCumul,
-        "status/=/1/RssFile/2", "RSS File",
+        "status/=/1/RssFile:/2", "RSS File",
         ProcStatType::MemQtyKb,
     ),
     Stat::new(

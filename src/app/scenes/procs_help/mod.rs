@@ -78,6 +78,7 @@ impl Scene for ProcsHelpScene {
             add_key(&mut text, "Home".into(), "Move selection to the top.".into());
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
             add_key(&mut text, "a".into(), "Toggle between processes and threads.".into());
+            add_key(&mut text, "c".into(), "Toggle child cgroup processes/threads.".into());
             add_key(&mut text, "n".into(), "Sort by command. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "s".into(), "Sort by memory usage / PID. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "[".into(), "Move to previous statistic.".into());

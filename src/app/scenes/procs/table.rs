@@ -15,13 +15,10 @@ use tui::{
 
 use crate::{
     app::PollResult,
-    cgroup::{
-        stats::{ProcStatType, STATS},
-        SortOrder,
-    },
+    cgroup::stats::{ProcStatType, STATS},
     file_proc::FileProcessorError,
     formatters::format_mem_qty,
-    proc::{load_procs, Proc},
+    proc::{load_procs, Proc, ProcSortOrder},
 };
 
 #[derive(Default)]
@@ -37,15 +34,20 @@ pub struct ProcsTable<'a> {
 
 impl<'a> ProcsTable<'a> {
     /// Build table
-    pub fn build_table(&mut self, cgroup2fs: &Path, cgroup: &Path, threads: bool, stat: usize, sort: SortOrder) {
+    pub fn build_table(
+        &mut self,
+        cgroup2fs: &Path,
+        cgroup: &Path,
+        threads: bool,
+        include_children: bool,
+        stat: usize,
+        sort: ProcSortOrder,
+    ) {
         // Get currently selected PID
         let old_selected_pid = self.selected().map(|i| self.procs[i].pid);
 
-        // Unselect
-        self.state.select(None);
-
         // Load process information
-        match load_procs(cgroup2fs, cgroup, threads, stat, sort) {
+        match load_procs(cgroup2fs, cgroup, include_children, threads, stat, sort) {
             Ok(procs) => {
                 self.procs = procs;
                 self.error = None;
@@ -57,7 +59,7 @@ impl<'a> ProcsTable<'a> {
         }
 
         // Build table cells
-        self.build_table_cells(threads, stat);
+        self.build_table_cells(threads, stat, sort);
 
         // Re-select PID if we had one and it's still there
         if let Some(old_pid) = old_selected_pid {
@@ -69,13 +71,23 @@ impl<'a> ProcsTable<'a> {
         &mut self,
         threads: bool,
         stat: usize,
+        sort: ProcSortOrder,
     ) {
         let mut header_cells = Vec::new();
         let mut widths = Vec::new();
 
+        // PID/TID column
+        let mut text = if threads { "TID".to_string() } else { "PID".to_string() };
+
+        match sort {
+            ProcSortOrder::PidAsc => text += " ▼",
+            ProcSortOrder::PidDsc => text += " ▲",
+            _ => (),
+        }
+
         // Calculate max PID length
         let pid_len = cmp::max(
-            3,
+            text.chars().count(),
             self.procs
                 .iter()
                 .map(|p| format!("{}", p.pid).len())
@@ -83,9 +95,64 @@ impl<'a> ProcsTable<'a> {
                 .unwrap_or(0),
         );
 
+        header_cells.push(Cell::from(format!("{:>1$}", text, pid_len)));
+        widths.push(Constraint::Length(pid_len as u16));
+
+        // Stat column
+        let mut stat_spans: Vec<Span> = Vec::new();
+        let mut stat_len = 0;
+
+        if STATS[stat].proc_stat_type() != ProcStatType::None {
+            let mut text: String = STATS[stat].proc_short_desc().into();
+
+            match sort {
+                ProcSortOrder::StatAsc => text += " ▼",
+                ProcSortOrder::StatDsc => text += " ▲",
+                _ => (),
+            }
+
+            // Calculate stat spans
+            stat_spans = self
+                .procs
+                .iter()
+                .map(|proc| match &proc.stat {
+                    Ok(value) => format_mem_qty(*value),
+                    Err(e) => {
+                        let msg = match e {
+                            FileProcessorError::ValueNotFound => "<None>",
+                            _ => "<Error>",
+                        };
+                        Span::styled(msg, Style::default().fg(Color::Red))
+                    }
+                })
+                .collect();
+            
+            // Calculate max stat length
+            stat_len = cmp::max(
+                text.chars().count(),
+                stat_spans
+                    .iter()
+                    .map(|s| s.width())
+                    .max()
+                    .unwrap_or(0),
+            );
+
+            header_cells.push(Cell::from(format!("{:>1$}", text, stat_len)));
+            widths.push(Constraint::Length(cmp::max(7, stat_len as u16)));
+        }
+
+        // Command column
+        let mut text = "Command".to_string();
+
+        match sort {
+            ProcSortOrder::CmdAsc => text += " ▼",
+            ProcSortOrder::CmdDsc => text += " ▲",
+            _ => (),
+        }
+
         // Calculate max command length
         let cmd_len = cmp::max(
-            7,
+            text.chars().count(),
             self.procs
                 .iter()
                 .map(|p| p.cmd.len())
@@ -93,22 +160,7 @@ impl<'a> ProcsTable<'a> {
                 .unwrap_or(0),
         );
 
-        // PID/TID column
-        let text = if threads { "TID" } else { "PID" };
-
-        header_cells.push(Cell::from(format!("{:>1$}", text, pid_len)));
-        widths.push(Constraint::Length(pid_len as u16));
-
-        // Stat column
-        if STATS[stat].proc_stat_type() != ProcStatType::None {
-            let desc = STATS[stat].proc_short_desc();
-
-            header_cells.push(Cell::from(format!("{:>7}", desc)));
-            widths.push(Constraint::Length(cmp::max(7, desc.len() as u16)));
-        }
-
-        // Command column
-        header_cells.push(Cell::from("Command"));
+        header_cells.push(Cell::from(text));
         widths.push(Constraint::Length(cmd_len as u16));
 
         // Build header
@@ -117,24 +169,26 @@ impl<'a> ProcsTable<'a> {
             .height(1);
 
         // Build body
-        let body_rows = self.procs
+        let body_rows = self
+            .procs
             .iter()
-            .map(|proc| {
+            .enumerate()
+            .map(|(i, proc)| {
                 let mut cells = Vec::new();
 
                 cells.push(Cell::from(format!("{:>1$}", proc.pid, pid_len)));
 
                 if STATS[stat].proc_stat_type() != ProcStatType::None {
-                    cells.push(Cell::from(Spans::from(match &proc.stat {
-                        Ok(value) => format_mem_qty(*value),
-                        Err(e) => {
-                            let msg = match e {
-                                FileProcessorError::ValueNotFound => "<None>",
-                                _ => "<Error>"
-                            };
-                            vec![Span::styled(msg, Style::default().fg(Color::Red))]
-                        }
-                    })));
+                    let span = &stat_spans[i];
+                    let pad_len = stat_len - span.width();
+                    let mut spans = Vec::new();
+
+                    if pad_len > 0 {
+                        spans.push(Span::from(format!("{:>1$}", "", pad_len)))
+                    }
+                    spans.push(span.clone());
+
+                    cells.push(Cell::from(Spans::from(spans)));
                 }
 
                 cells.push(Cell::from(proc.cmd.clone()));

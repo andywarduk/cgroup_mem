@@ -78,13 +78,15 @@ impl Scene for CGroupTreeHelpScene {
             add_key(&mut text, "Home".into(), "Move selection to the top.".into());
             add_key(&mut text, "End".into(), "Move selection to the end.".into());
             add_key(&mut text, "n".into(), "Sort by cgroup name. Pressing again toggles ascending / descending sort order.".into());
-            add_key(&mut text, "s".into(), "Sort by memory usage. Pressing again toggles ascending / descending sort order.".into());
+            add_key(&mut text, "s".into(), "Sort by statistic. Pressing again toggles ascending / descending sort order.".into());
             add_key(&mut text, "c".into(), "Collapse all expanded nodes.".into());
             add_key(&mut text, "z".into(), "Select statistic to show.".into());
             add_key(&mut text, "[".into(), "Move to previous statistic.".into());
             add_key(&mut text, "]".into(), "Move to next statistic.".into());
             add_key(&mut text, "p".into(), "Show processes for the selected cgroup.".into());
+            add_key(&mut text, "P".into(), "Show processes for the selected cgroup and all descendents.".into());
             add_key(&mut text, "t".into(), "Show threads for the selected cgroup.".into());
+            add_key(&mut text, "T".into(), "Show threads for the selected cgroup and all descendents.".into());
             add_key(&mut text, "r".into(), "Refresh the list.".into());
             add_key(&mut text, "h".into(), "Shows this help screen.".into());
             add_key(&mut text, "Esc / q".into(), "Exit the program.".into());

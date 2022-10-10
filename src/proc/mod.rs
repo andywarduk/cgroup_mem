@@ -5,10 +5,7 @@ use std::{
 };
 
 use crate::{
-    cgroup::{
-        stats::{ProcStatType, STATS},
-        SortOrder,
-    },
+    cgroup::stats::{ProcStatType, STATS},
     file_proc::{
         get_file_processor,
         FileProcessor,
@@ -23,18 +20,29 @@ pub struct Proc {
     pub stat: Result<usize, FileProcessorError>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ProcSortOrder {
+    PidAsc,
+    PidDsc,
+    StatAsc,
+    StatDsc,
+    CmdAsc,
+    CmdDsc,
+}
+
 pub fn load_procs(
     cgroup2fs: &Path,
     cgroup: &Path,
+    include_children: bool,
     threads: bool,
     stat: usize,
-    sort: SortOrder,
+    sort: ProcSortOrder,
 ) -> io::Result<Vec<Proc>> {
     // Get PID list
     let mut path = cgroup2fs.to_path_buf();
     path.extend(cgroup);
 
-    let pids = load_pids(path, threads)?;
+    let pids = load_pids(path.as_path(), threads, include_children)?;
 
     // Create file processor for getting command line / comm
     let file_processor = SingleValueProcessor::default();
@@ -86,39 +94,36 @@ pub fn load_procs(
 
     // Sort the processes
     match sort {
-        SortOrder::NameAsc => procs.sort_by(|a, b| a.cmd.cmp(&b.cmd)),
-        SortOrder::NameDsc => procs.sort_by(|a, b| a.cmd.cmp(&b.cmd).reverse()),
-        SortOrder::SizeAsc => {
-            if stat_processor.is_none() {
-                procs.sort_by(|a, b| a.pid.cmp(&b.pid));
-            } else {
-                procs.sort_by(|a, b| {
-                    a.stat
-                        .as_ref()
-                        .unwrap_or(&0)
-                        .cmp(b.stat.as_ref().unwrap_or(&0))
-                });
-            }
+        ProcSortOrder::PidAsc => procs.sort_by(|a, b| a.pid.cmp(&b.pid)),
+        ProcSortOrder::PidDsc => procs.sort_by(|a, b| a.pid.cmp(&b.pid).reverse()),
+        ProcSortOrder::CmdAsc => procs.sort_by(|a, b| a.cmd.cmp(&b.cmd)),
+        ProcSortOrder::CmdDsc => procs.sort_by(|a, b| a.cmd.cmp(&b.cmd).reverse()),
+        ProcSortOrder::StatAsc => {
+            procs.sort_by(|a, b| {
+                a.stat
+                    .as_ref()
+                    .unwrap_or(&0)
+                    .cmp(b.stat.as_ref().unwrap_or(&0))
+            });
         }
-        SortOrder::SizeDsc => {
-            if stat_processor.is_none() {
-                procs.sort_by(|a, b| a.pid.cmp(&b.pid).reverse());
-            } else {
-                procs.sort_by(|a, b| {
-                    a.stat
-                        .as_ref()
-                        .unwrap_or(&0)
-                        .cmp(b.stat.as_ref().unwrap_or(&0))
-                        .reverse()
-                });
-            }
+        ProcSortOrder::StatDsc => {
+            procs.sort_by(|a, b| {
+                a.stat
+                    .as_ref()
+                    .unwrap_or(&0)
+                    .cmp(b.stat.as_ref().unwrap_or(&0))
+                    .reverse()
+            });
         }
     }
 
     Ok(procs)
 }
 
-fn load_pids(mut path: PathBuf, threads: bool) -> io::Result<Vec<usize>> {
+fn load_pids(cgroup_path: &Path, threads: bool, include_children: bool) -> io::Result<Vec<usize>> {
+    let mut path = cgroup_path.to_path_buf();
+
+    // Get PIDs for the passed cgroup
     if threads {
         path.push("cgroup.threads");
     } else {
@@ -128,14 +133,32 @@ fn load_pids(mut path: PathBuf, threads: bool) -> io::Result<Vec<usize>> {
     let file = File::open(path)?;
     let buf_reader = BufReader::new(file);
 
-    buf_reader
+    let mut pids = buf_reader
         .lines()
         .map(|line| {
             let line = line?;
+
             match line.parse::<usize>() {
                 Ok(n) => Ok(n),
                 Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e)),
             }
         })
-        .collect()
+        .collect::<io::Result<Vec<usize>>>()?;
+
+    // Recurse in to child cgroups
+    if include_children {
+        for child_pids in cgroup_path
+            .read_dir()?
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|e| e.is_dir())
+            .map(|e| load_pids(&e, threads, true))
+            .filter_map(|e| e.ok())
+        {
+            pids.extend(child_pids);
+        }
+    }
+
+    Ok(pids)
 }

@@ -1,6 +1,6 @@
 use std::{
     io::Stdout,
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
 };
 
 use tui::{
@@ -18,7 +18,7 @@ use crate::{
         load_cgroups,
         stats::{StatType, STATS},
         CGroup,
-        SortOrder,
+        CGroupSortOrder,
     },
     formatters::{format_mem_qty, format_qty},
 };
@@ -33,7 +33,7 @@ pub struct CGroupTree<'a> {
 
 impl<'a> CGroupTree<'a> {
     /// Build tree
-    pub fn build_tree(&mut self, cgroup2fs: &Path, stat: usize, sort: SortOrder) {
+    pub fn build_tree(&mut self, cgroup2fs: &Path, stat: usize, sort: CGroupSortOrder) {
         // Save currently selected node path
         let old_selected = self.cgroup().map(|cg| cg.path().clone());
 
@@ -48,7 +48,6 @@ impl<'a> CGroupTree<'a> {
 
         // Close all opened
         self.state.close_all();
-        self.state.select(vec![]);
 
         // Load cgroup information
         let cgroups = load_cgroups(cgroup2fs, stat, sort);
@@ -139,13 +138,11 @@ impl<'a> CGroupTree<'a> {
                 ]
             }
             None => {
-                let mut spans = match STATS[stat].stat_type() {
+                let span = match STATS[stat].stat_type() {
                     StatType::MemQtyCumul => format_mem_qty(cgroup.stat()),
                     StatType::Qty => format_qty(cgroup.stat()),
                 };
-                spans.push(Span::raw(": "));
-                spans.push(path);
-                spans
+                vec![span, Span::raw(": "), path]
             }
         }))
     }

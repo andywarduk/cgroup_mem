@@ -54,14 +54,14 @@ impl CGroup {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum SortOrder {
+pub enum CGroupSortOrder {
     NameAsc,
     NameDsc,
-    SizeAsc,
-    SizeDsc,
+    StatAsc,
+    StatDsc,
 }
 
-pub fn load_cgroups(cgroup2fs: &Path, stat: usize, sort: SortOrder) -> Vec<CGroup> {
+pub fn load_cgroups(cgroup2fs: &Path, stat: usize, sort: CGroupSortOrder) -> Vec<CGroup> {
     let rel_path = PathBuf::new();
 
     let processor = get_file_processor(STATS[stat].def()).unwrap();
@@ -82,7 +82,7 @@ pub fn load_cgroups(cgroup2fs: &Path, stat: usize, sort: SortOrder) -> Vec<CGrou
 fn load_cgroup_rec(
     abs_path: PathBuf,
     rel_path: &Path,
-    sort: SortOrder,
+    sort: CGroupSortOrder,
     stat: usize,
     processor: &dyn FileProcessor,
 ) -> io::Result<CGroup> {
@@ -155,10 +155,10 @@ fn load_cgroup_rec(
 
     // Sort the children
     match sort {
-        SortOrder::NameAsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path)),
-        SortOrder::NameDsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path).reverse()),
-        SortOrder::SizeAsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat)),
-        SortOrder::SizeDsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat).reverse()),
+        CGroupSortOrder::NameAsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path)),
+        CGroupSortOrder::NameDsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path).reverse()),
+        CGroupSortOrder::StatAsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat)),
+        CGroupSortOrder::StatDsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat).reverse()),
     }
 
     Ok(cgroup)

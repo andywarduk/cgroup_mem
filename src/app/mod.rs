@@ -6,7 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::cgroup::SortOrder;
+use crate::cgroup::CGroupSortOrder;
+use crate::proc::ProcSortOrder;
 
 use super::TermType;
 
@@ -28,8 +29,9 @@ pub enum Action {
     Stat(usize),
     Scene(AppScene),
     ProcCGroup(PathBuf),
-    ProcThreads(bool),
-    Sort(SortOrder),
+    ProcMode(bool, bool),
+    CGroupSort(CGroupSortOrder),
+    ProcSort(ProcSortOrder),
 }
 
 #[derive(PartialEq, Eq)]
@@ -72,7 +74,7 @@ impl<'a> App<'a> {
         res.set_stat(stat);
 
         // Set initial sort order
-        res.set_sort(SortOrder::SizeDsc);
+        res.set_cgroup_sort(CGroupSortOrder::StatDsc);
 
         res
     }
@@ -160,8 +162,9 @@ impl<'a> App<'a> {
                 Action::Scene(scene) => self.set_scene(scene),
                 Action::Stat(item) => self.set_stat(item),
                 Action::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
-                Action::ProcThreads(threads) => self.set_threads(threads),
-                Action::Sort(sort) => self.set_sort(sort),
+                Action::ProcMode(threads, include_children) => self.set_procs_mode(threads, include_children),
+                Action::CGroupSort(sort) => self.set_cgroup_sort(sort),
+                Action::ProcSort(sort) => self.set_proc_sort(sort),
             }
         }
     }
@@ -177,8 +180,13 @@ impl<'a> App<'a> {
         self.procs_scene.set_stat(stat);
     }
 
-    fn set_sort(&mut self, sort: SortOrder) {
+    fn set_cgroup_sort(&mut self, sort: CGroupSortOrder) {
         self.cgroup_tree_scene.set_sort(sort);
+        self.procs_scene.set_cgroup_sort(sort);
+    }
+
+    fn set_proc_sort(&mut self, sort: ProcSortOrder) {
+        self.cgroup_tree_scene.set_proc_sort(sort);
         self.procs_scene.set_sort(sort);
     }
 
@@ -186,7 +194,7 @@ impl<'a> App<'a> {
         self.procs_scene.set_cgroup(cgroup);
     }
 
-    fn set_threads(&mut self, threads: bool) {
-        self.procs_scene.set_threads(threads);
+    fn set_procs_mode(&mut self, threads: bool, include_children: bool) {
+        self.procs_scene.set_mode(threads, include_children);
     }
 }

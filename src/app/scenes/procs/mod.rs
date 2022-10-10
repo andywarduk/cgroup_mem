@@ -14,8 +14,9 @@ use crate::{
     app::{Action, AppScene, PollResult},
     cgroup::{
         stats::{ProcStatType, STATS},
-        SortOrder,
+        CGroupSortOrder,
     },
+    proc::ProcSortOrder,
     TermType,
 };
 
@@ -27,9 +28,11 @@ pub struct ProcsScene<'a> {
     debug: bool,
     cgroup2fs: &'a Path,
     cgroup: PathBuf,
-    sort: SortOrder,
+    sort: ProcSortOrder,
+    proc_sort: ProcSortOrder,
     stat: usize,
     threads: bool,
+    include_children: bool,
     table: ProcsTable<'a>,
     next_refresh: Instant,
     draws: usize,
@@ -43,9 +46,11 @@ impl<'a> ProcsScene<'a> {
             debug,
             cgroup2fs,
             cgroup: PathBuf::new(),
-            sort: SortOrder::NameAsc,
+            sort: ProcSortOrder::CmdAsc,
+            proc_sort: ProcSortOrder::CmdAsc,
             stat: 0,
             threads: false,
+            include_children: false,
             table: Default::default(),
             next_refresh: Instant::now(),
             draws: 0,
@@ -67,34 +72,69 @@ impl<'a> ProcsScene<'a> {
     /// Sets the statistic to display
     pub fn set_stat(&mut self, stat: usize) {
         self.stat = stat;
+        self.resolve_sort();
     }
 
     /// Sets the sort order to use
-    pub fn set_sort(&mut self, sort: SortOrder) {
-        self.sort = sort;
+    pub fn set_sort(&mut self, sort: ProcSortOrder) {
+        self.proc_sort = sort;
+        self.resolve_sort();
     }
 
-    /// Set thread display (vs process display)
-    pub fn set_threads(&mut self, threads: bool) {
-        self.threads = threads
+    /// Sets the sort order to use
+    pub fn set_cgroup_sort(&mut self, sort: CGroupSortOrder) {
+        match sort {
+            CGroupSortOrder::NameAsc => self.proc_sort = ProcSortOrder::CmdAsc,
+            CGroupSortOrder::NameDsc => self.proc_sort = ProcSortOrder::CmdDsc,
+            CGroupSortOrder::StatAsc => self.proc_sort = ProcSortOrder::StatAsc,
+            CGroupSortOrder::StatDsc => self.proc_sort = ProcSortOrder::StatDsc,
+        }
+        self.resolve_sort();
+    }
+
+    /// Set display mode
+    pub fn set_mode(&mut self, threads: bool, include_children: bool) {
+        self.threads = threads;
+        self.include_children = include_children;
+    }
+
+    fn sort_pid(&mut self) -> PollResult {
+        let new_sort = match self.sort {
+            ProcSortOrder::PidAsc => ProcSortOrder::PidDsc,
+            _ => ProcSortOrder::PidAsc,
+        };
+
+        Some(vec![Action::ProcSort(new_sort), Action::Reload])
     }
 
     fn sort_name(&mut self) -> PollResult {
         let new_sort = match self.sort {
-            SortOrder::NameAsc => SortOrder::NameDsc,
-            _ => SortOrder::NameAsc,
+            ProcSortOrder::CmdAsc => ProcSortOrder::CmdDsc,
+            _ => ProcSortOrder::CmdAsc,
         };
 
-        Some(vec![Action::Sort(new_sort), Action::Reload])
+        Some(vec![Action::ProcSort(new_sort), Action::Reload])
     }
 
     fn sort_stat(&mut self) -> PollResult {
         let new_sort = match self.sort {
-            SortOrder::SizeAsc => SortOrder::SizeDsc,
-            _ => SortOrder::SizeAsc,
+            ProcSortOrder::StatAsc => ProcSortOrder::StatDsc,
+            _ => ProcSortOrder::StatAsc,
         };
 
-        Some(vec![Action::Sort(new_sort), Action::Reload])
+        Some(vec![Action::ProcSort(new_sort), Action::Reload])
+    }
+
+    fn resolve_sort(&mut self) {
+        self.sort = if STATS[self.stat].proc_stat_type() == ProcStatType::None {
+            match self.proc_sort {
+                ProcSortOrder::StatAsc => ProcSortOrder::PidAsc,
+                ProcSortOrder::StatDsc => ProcSortOrder::PidDsc,
+                s => s,
+            }
+        } else {
+            self.proc_sort
+        }
     }
 
     fn next_stat(&self, up: bool) -> PollResult {
@@ -122,7 +162,14 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Reloads the process scene
     fn reload(&mut self) {
         // Build the tree
-        self.table.build_table(self.cgroup2fs, &self.cgroup, self.threads, self.stat, self.sort);
+        self.table.build_table(
+            self.cgroup2fs,
+            &self.cgroup,
+            self.threads,
+            self.include_children,
+            self.stat,
+            self.sort,
+        );
         self.loads += 1;
 
         // Calculate next refresh time
@@ -141,7 +188,12 @@ impl<'a> Scene for ProcsScene<'a> {
                 cgroup_str = "/".into();
             }
 
-            let ptype = if self.threads { "Threads" } else { "Processes" };
+            let ptype = match (self.threads, self.include_children) {
+                (false, false) => "Processes",
+                (false, true) => "Hierarchy Processes",
+                (true, false) => "Threads",
+                (true, true) => "Hierarchy Threads",
+            };
 
             let mut title = format!("{} for {}", ptype, cgroup_str);
 
@@ -162,20 +214,22 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('p') | KeyCode::Char('t') => {
-                Some(vec![Action::Scene(AppScene::CGroupTree)])
-            }
+            KeyCode::Char('q') | KeyCode::Esc
+            | KeyCode::Char('p') | KeyCode::Char('t')
+            | KeyCode::Char('P') | KeyCode::Char('T') => Some(vec![Action::Scene(AppScene::CGroupTree)]),
             KeyCode::Up => self.table.up(),
             KeyCode::Down => self.table.down(),
             KeyCode::PageUp => self.table.pgup(),
             KeyCode::PageDown => self.table.pgdown(),
             KeyCode::Home => self.table.home(),
             KeyCode::End => self.table.end(),
+            KeyCode::Char('i') => self.sort_pid(),
             KeyCode::Char('n') => self.sort_name(),
             KeyCode::Char('s') => self.sort_stat(),
             KeyCode::Char('[') => self.next_stat(false),
             KeyCode::Char(']') => self.next_stat(true),
-            KeyCode::Char('a') => Some(vec![Action::ProcThreads(!self.threads), Action::Reload]),
+            KeyCode::Char('a') => Some(vec![Action::ProcMode(!self.threads, self.include_children), Action::Reload]),
+            KeyCode::Char('c') => Some(vec![Action::ProcMode(self.threads, !self.include_children), Action::Reload]),
             KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::ProcsHelp)]),
             KeyCode::Char('r') => Some(vec![Action::Reload]),
             _ => None,
