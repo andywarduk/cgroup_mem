@@ -25,7 +25,7 @@ use tui::{
 
 use app::App;
 use cgroup::stats::STATS;
-use file_proc::{KeyedProcessor, FileProcessor};
+use file_proc::{FileProcessor, KeyedProcessor};
 
 /// Command line arguments
 #[derive(Parser, Debug)]
@@ -59,7 +59,7 @@ fn main() -> Result<(), io::Error> {
         None => {
             eprintln!("Unable to find the mount point for the cgroup2 file system");
             std::process::exit(1);
-        },
+        }
     };
 
     // Set up terminal

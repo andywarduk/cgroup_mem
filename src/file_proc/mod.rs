@@ -55,14 +55,14 @@ pub fn get_file_processor(def: &str) -> Option<Box<dyn FileProcessor>> {
 
     // Sanity check
     if split.is_empty() || split[0].is_empty() {
-        return None
+        return None;
     }
 
     if split.len() == 1 {
         // Format is "filename" for single value processor
         let mut proc = SingleValueProcessor::new();
         proc.set_file(split[0]);
-        return Some(Box::new(proc))
+        return Some(Box::new(proc));
     }
 
     match split[1] {
@@ -89,7 +89,7 @@ pub fn get_file_processor(def: &str) -> Option<Box<dyn FileProcessor>> {
 
             let mut proc = KeyedProcessor::new(match_col, split[3], ret_col);
             proc.set_file(split[0]);
-            Some(Box::new(proc))        
+            Some(Box::new(proc))
         }
         "#" => {
             // Format is "filename/#" for line count processor
@@ -99,7 +99,7 @@ pub fn get_file_processor(def: &str) -> Option<Box<dyn FileProcessor>> {
 
             let mut proc = CountProcessor::new();
             proc.set_file(split[0]);
-            Some(Box::new(proc))        
+            Some(Box::new(proc))
         }
         _ => None,
     }
