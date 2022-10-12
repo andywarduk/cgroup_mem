@@ -12,7 +12,8 @@ use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
+    cursor::MoveTo,
 };
 use std::{
     io,
@@ -87,7 +88,7 @@ type TermType = Terminal<CrosstermBackend<io::Stdout>>;
 fn setup_terminal() -> Result<TermType, io::Error> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture, Clear(ClearType::All))?;
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)?;
 
@@ -100,6 +101,8 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
     if let Some(terminal) = terminal {
         execute!(
             terminal.backend_mut(),
+            Clear(ClearType::All),
+            MoveTo(0, 0),
             LeaveAlternateScreen,
             DisableMouseCapture
         )?;
