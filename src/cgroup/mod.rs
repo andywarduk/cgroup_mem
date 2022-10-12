@@ -1,7 +1,8 @@
 pub mod stats;
 
 use std::{
-    io,
+    io::{self, BufReader, BufRead},
+    fs::File,
     path::{Path, PathBuf},
 };
 
@@ -114,7 +115,15 @@ fn load_cgroup_rec(
     // Get the statistic for this cgroup
     match processor.get_stat(&abs_path) {
         Ok(stat) => cgroup.stat = stat,
-        Err(e) => cgroup.error = Some(e.to_string()),
+        Err(e) => {
+            cgroup.error = Some(e.to_string());
+
+            if let Ok(has_controller) = cgroup_has_memory_controller(&abs_path) {
+                if !has_controller {
+                    cgroup.error = Some("No memory controller".into());
+                }
+            }
+        }
     }
 
     match STATS[stat].stat_type() {
@@ -162,4 +171,22 @@ fn load_cgroup_rec(
     }
 
     Ok(cgroup)
+}
+
+fn cgroup_has_memory_controller(path: &Path) -> io::Result<bool> {
+    let mut path = path.to_path_buf();
+    path.push("cgroup.controllers");
+
+    let file = File::open(path)?;
+
+    match BufReader::new(file).lines().next() {
+        None => Ok(false),
+        Some(Err(e)) => Err(e)?,
+        Some(Ok(line)) => {
+            Ok(line
+                .split_whitespace()
+                .any(|s| s == "memory")
+            )
+        }
+    }
 }

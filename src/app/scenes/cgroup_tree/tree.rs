@@ -156,8 +156,9 @@ impl<'a> CGroupTree<'a> {
         Text::from(Spans::from(match cgroup.error() {
             Some(msg) => {
                 vec![
+                    Span::raw("         "),
                     path,
-                    Span::raw(": "),
+                    Span::raw(" - "),
                     Span::styled(msg.clone(), Style::default().fg(Color::Red)),
                 ]
             }
