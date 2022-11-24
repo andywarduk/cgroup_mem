@@ -1,18 +1,14 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::{
-    style::{Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState},
-};
+use tui::style::{Modifier, Style};
+use tui::text::{Span, Spans};
+use tui::widgets::{Block, Borders, List, ListItem, ListState};
 
 use super::Scene;
-use crate::{
-    app::{Action, AppScene, PollResult},
-    cgroup::stats::STATS,
-    TermType,
-};
+use crate::app::{Action, AppScene, PollResult};
+use crate::cgroup::stats::STATS;
+use crate::TermType;
 
 pub struct StatChooseScene<'a> {
     items: Vec<ListItem<'a>>,

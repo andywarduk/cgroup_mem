@@ -1,27 +1,17 @@
-use std::{
-    io::Stdout,
-    path::{Path, PathBuf},
-};
+use std::io::Stdout;
+use std::path::{Path, PathBuf};
 
-use tui::{
-    backend::CrosstermBackend,
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-    widgets::Block,
-    Frame,
-};
+use tui::backend::CrosstermBackend;
+use tui::style::{Color, Modifier, Style};
+use tui::text::{Span, Spans, Text};
+use tui::widgets::Block;
+use tui::Frame;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::{
-    app::PollResult,
-    cgroup::{
-        load_cgroups,
-        stats::{StatType, STATS},
-        CGroup,
-        CGroupSortOrder,
-    },
-    formatters::{format_mem_qty, format_qty},
-};
+use crate::app::PollResult;
+use crate::cgroup::stats::{StatType, STATS};
+use crate::cgroup::{load_cgroups, CGroup, CGroupSortOrder};
+use crate::formatters::{format_mem_qty, format_qty};
 
 #[derive(Default)]
 pub struct CGroupTree<'a> {

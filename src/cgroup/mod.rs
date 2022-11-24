@@ -1,13 +1,11 @@
 pub mod stats;
 
-use std::{
-    fs::File,
-    io::{self, BufRead, BufReader},
-    path::{Path, PathBuf},
-};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
+use std::path::{Path, PathBuf};
 
 use self::stats::{StatType, STATS};
-use crate::file_proc::{get_file_processor, FileProcessor};
+use crate::file_proc::{get_file_processor, FileProcessor, KeyedProcessor};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -186,5 +184,15 @@ fn cgroup_has_memory_controller(path: &Path) -> io::Result<bool> {
         None => Ok(false),
         Some(Err(e)) => Err(e)?,
         Some(Ok(line)) => Ok(line.split_whitespace().any(|s| s == "memory")),
+    }
+}
+
+/// Gets the path to the mounted cgroup v2 filesystem if available
+pub fn get_cgroup2_mount_point() -> Option<PathBuf> {
+    let file_proc = KeyedProcessor::new(3, "cgroup2", 2);
+
+    match file_proc.get_value(&PathBuf::from("/proc/mounts")) {
+        Ok(path) => Some(PathBuf::from(path)),
+        Err(_) => None,
     }
 }

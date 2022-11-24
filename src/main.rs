@@ -8,27 +8,26 @@ mod file_proc;
 mod formatters;
 mod proc;
 
-use std::{io, path::PathBuf};
+use std::io;
 
 use clap::Parser;
-use crossterm::{
-    cursor::MoveTo,
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{
-        disable_raw_mode,
-        enable_raw_mode,
-        Clear,
-        ClearType,
-        EnterAlternateScreen,
-        LeaveAlternateScreen,
-    },
+use crossterm::cursor::MoveTo;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode,
+    enable_raw_mode,
+    Clear,
+    ClearType,
+    EnterAlternateScreen,
+    LeaveAlternateScreen,
 };
-use tui::{backend::CrosstermBackend, Terminal};
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
 
 use crate::app::App;
+use crate::cgroup::get_cgroup2_mount_point;
 use crate::cgroup::stats::STATS;
-use crate::file_proc::{FileProcessor, KeyedProcessor};
 
 /// Command line arguments
 #[derive(Parser, Debug)]
@@ -94,13 +93,16 @@ type TermType = Terminal<CrosstermBackend<io::Stdout>>;
 
 fn setup_terminal() -> Result<TermType, io::Error> {
     enable_raw_mode()?;
+
     let mut stdout = io::stdout();
+
     execute!(
         stdout,
         EnterAlternateScreen,
         EnableMouseCapture,
         Clear(ClearType::All)
     )?;
+
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)?;
 
@@ -118,19 +120,11 @@ fn restore_terminal(terminal: Option<&mut TermType>) -> Result<(), io::Error> {
             LeaveAlternateScreen,
             DisableMouseCapture
         )?;
+
         terminal.show_cursor()?;
     }
 
     Ok(())
-}
-
-fn get_cgroup2_mount_point() -> Option<PathBuf> {
-    let file_proc = KeyedProcessor::new(3, "cgroup2", 2);
-
-    match file_proc.get_value(&PathBuf::from("/proc/mounts")) {
-        Ok(path) => Some(PathBuf::from(path)),
-        Err(_) => None,
-    }
 }
 
 fn list_stats() {

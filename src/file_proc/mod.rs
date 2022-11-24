@@ -2,9 +2,14 @@ mod count;
 mod keyed;
 mod single_value;
 
-use std::{fmt::Display, io, num::ParseIntError, path::Path};
+use std::fmt::Display;
+use std::io;
+use std::num::ParseIntError;
+use std::path::Path;
 
-pub use self::{count::CountProcessor, keyed::KeyedProcessor, single_value::SingleValueProcessor};
+pub use self::count::CountProcessor;
+pub use self::keyed::KeyedProcessor;
+pub use self::single_value::SingleValueProcessor;
 
 pub trait FileProcessor {
     fn get_value(&self, path: &Path) -> Result<String, FileProcessorError>;

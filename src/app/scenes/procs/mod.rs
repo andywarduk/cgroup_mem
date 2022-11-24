@@ -1,26 +1,20 @@
 mod table;
 
-use std::{
-    ffi::OsStr,
-    io,
-    path::{Path, PathBuf},
-    time::{Duration, Instant},
-};
+use std::ffi::OsStr;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
 use self::table::ProcsTable;
 use super::Scene;
-use crate::{
-    app::{Action, AppScene, PollResult},
-    cgroup::{
-        stats::{ProcStatType, STATS},
-        CGroupSortOrder,
-    },
-    proc::ProcSortOrder,
-    TermType,
-};
+use crate::app::{Action, AppScene, PollResult};
+use crate::cgroup::stats::{ProcStatType, STATS};
+use crate::cgroup::CGroupSortOrder;
+use crate::proc::ProcSortOrder;
+use crate::TermType;
 
 pub struct ProcsScene<'a> {
     debug: bool,

@@ -1,25 +1,19 @@
 mod tree;
 
-use std::{
-    io,
-    path::Path,
-    time::{Duration, Instant},
-};
+use std::io;
+use std::path::Path;
+use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
 use self::tree::CGroupTree;
 use super::Scene;
-use crate::{
-    app::{Action, AppScene, PollResult},
-    cgroup::{
-        stats::{StatType, STATS},
-        CGroupSortOrder,
-    },
-    proc::ProcSortOrder,
-    TermType,
-};
+use crate::app::{Action, AppScene, PollResult};
+use crate::cgroup::stats::{StatType, STATS};
+use crate::cgroup::CGroupSortOrder;
+use crate::proc::ProcSortOrder;
+use crate::TermType;
 
 pub struct CGroupTreeScene<'a> {
     debug: bool,

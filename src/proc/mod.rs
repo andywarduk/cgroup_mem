@@ -1,12 +1,13 @@
-use std::{
-    fs::File,
-    io::{self, BufRead, BufReader},
-    path::{Path, PathBuf},
-};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
+use std::path::{Path, PathBuf};
 
-use crate::{
-    cgroup::stats::{ProcStatType, STATS},
-    file_proc::{get_file_processor, FileProcessor, FileProcessorError, SingleValueProcessor},
+use crate::cgroup::stats::{ProcStatType, STATS};
+use crate::file_proc::{
+    get_file_processor,
+    FileProcessor,
+    FileProcessorError,
+    SingleValueProcessor,
 };
 
 pub struct Proc {

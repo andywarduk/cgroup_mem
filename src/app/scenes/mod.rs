@@ -1,4 +1,5 @@
-use std::{io, time::Duration};
+use std::io;
+use std::time::Duration;
 
 use crossterm::event::KeyEvent;
 

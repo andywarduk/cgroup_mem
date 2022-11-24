@@ -1,21 +1,17 @@
 mod scenes;
 
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::io;
+use std::path::{Path, PathBuf};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 
-use self::scenes::{
-    cgroup_tree::CGroupTreeScene,
-    cgroup_tree_help::build_cgroup_tree_help_scene,
-    help::HelpScene,
-    procs::ProcsScene,
-    procs_help::build_procs_help_scene,
-    stat_choose::StatChooseScene,
-    Scene,
-};
+use self::scenes::cgroup_tree::CGroupTreeScene;
+use self::scenes::cgroup_tree_help::build_cgroup_tree_help_scene;
+use self::scenes::help::HelpScene;
+use self::scenes::procs::ProcsScene;
+use self::scenes::procs_help::build_procs_help_scene;
+use self::scenes::stat_choose::StatChooseScene;
+use self::scenes::Scene;
 use super::TermType;
 use crate::cgroup::CGroupSortOrder;
 use crate::proc::ProcSortOrder;

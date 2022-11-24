@@ -1,17 +1,13 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::{
-    style::{Color, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, Paragraph},
-};
+use tui::style::{Color, Style};
+use tui::text::{Span, Spans};
+use tui::widgets::{Block, Borders, Paragraph};
 
 use super::Scene;
-use crate::{
-    app::{Action, AppScene, PollResult},
-    TermType,
-};
+use crate::app::{Action, AppScene, PollResult};
+use crate::TermType;
 
 enum HelpLine<'a> {
     Line(&'a str),

@@ -1,21 +1,19 @@
-use std::{cmp, io::Stdout, path::Path};
+use std::cmp;
+use std::io::Stdout;
+use std::path::Path;
 
-use tui::{
-    backend::CrosstermBackend,
-    layout::Constraint,
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Cell, Paragraph, Row, Table, TableState},
-    Frame,
-};
+use tui::backend::CrosstermBackend;
+use tui::layout::Constraint;
+use tui::style::{Color, Modifier, Style};
+use tui::text::{Span, Spans};
+use tui::widgets::{Block, Cell, Paragraph, Row, Table, TableState};
+use tui::Frame;
 
-use crate::{
-    app::PollResult,
-    cgroup::stats::{ProcStatType, STATS},
-    file_proc::FileProcessorError,
-    formatters::format_mem_qty,
-    proc::{load_procs, Proc, ProcSortOrder},
-};
+use crate::app::PollResult;
+use crate::cgroup::stats::{ProcStatType, STATS};
+use crate::file_proc::FileProcessorError;
+use crate::formatters::format_mem_qty;
+use crate::proc::{load_procs, Proc, ProcSortOrder};
 
 #[derive(Default)]
 pub struct ProcsTable<'a> {
