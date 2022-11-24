@@ -6,7 +6,7 @@ use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans, Text};
 use tui::widgets::Block;
 use tui::Frame;
-use tui_tree_widget::{Tree, TreeItem, TreeState};
+use tui_tree_widget::{flatten, Tree, TreeItem, TreeState};
 
 use crate::app::PollResult;
 use crate::cgroup::stats::{StatType, STATS};
@@ -19,6 +19,7 @@ pub struct CGroupTree<'a> {
     items: Vec<TreeItem<'a>>,
     state: TreeState,
     single_root: bool,
+    page_size: u16,
 }
 
 impl<'a> CGroupTree<'a> {
@@ -153,6 +154,9 @@ impl<'a> CGroupTree<'a> {
         // Get the size of the frame
         let size = frame.size();
 
+        // Calculate number of rows in a page
+        self.page_size = std::cmp::max(2, block.inner(size).height) - 1;
+
         // Create the tree
         let tree = Tree::new(self.items.clone())
             .block(block)
@@ -160,6 +164,35 @@ impl<'a> CGroupTree<'a> {
 
         // Draw the tree
         frame.render_stateful_widget(tree, size, &mut self.state);
+    }
+
+    fn move_by(&mut self, amount: isize, no_pos: isize) -> PollResult {
+        let visible = flatten(&self.state.get_all_opened(), &self.items);
+
+        if visible.is_empty() {
+            return None;
+        }
+
+        let current_identifier = self.selected();
+
+        let current_index = visible
+            .iter()
+            .position(|o| o.identifier == current_identifier);
+
+        let new_index = match current_index {
+            Some(idx) => idx as isize + amount,
+            None => no_pos + amount,
+        }
+        .max(0)
+        .min(visible.len() as isize - 1) as usize;
+
+        if Some(new_index) != current_index {
+            let new_identifier = visible[new_index].identifier.clone();
+            self.state.select(new_identifier);
+            Some(vec![])
+        } else {
+            None
+        }
     }
 
     #[must_use]
@@ -176,14 +209,22 @@ impl<'a> CGroupTree<'a> {
 
     #[must_use]
     pub fn down(&mut self) -> PollResult {
-        self.state.key_down(&self.items);
-        Some(vec![])
+        self.move_by(1, -1)
     }
 
     #[must_use]
     pub fn up(&mut self) -> PollResult {
-        self.state.key_up(&self.items);
-        Some(vec![])
+        self.move_by(-1, self.page_size as isize + 1)
+    }
+
+    #[must_use]
+    pub fn pg_down(&mut self) -> PollResult {
+        self.move_by(self.page_size as isize, 0)
+    }
+
+    #[must_use]
+    pub fn pg_up(&mut self) -> PollResult {
+        self.move_by(-(self.page_size as isize), self.page_size as isize)
     }
 
     #[must_use]

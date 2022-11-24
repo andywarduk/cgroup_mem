@@ -8,6 +8,8 @@ pub fn build_cgroup_tree_help_scene<'a>() -> HelpScene<'a> {
 
     help.add_key("Up Arrow", "Move selection up.");
     help.add_key("Down Arrow", "Move selection down.");
+    help.add_key("Page Up", "Move selection up a page.");
+    help.add_key("Page Down", "Move selection down a page.");
     help.add_key(
         "Left Arrow",
         "Collapse tree node if on a parent node or move to parent otherwise.",

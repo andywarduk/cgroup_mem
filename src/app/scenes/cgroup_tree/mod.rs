@@ -62,6 +62,7 @@ impl<'a> CGroupTreeScene<'a> {
         }
     }
 
+    #[must_use]
     fn sort_name(&mut self) -> PollResult {
         let new_sort = match self.sort {
             CGroupSortOrder::NameAsc => CGroupSortOrder::NameDsc,
@@ -71,6 +72,7 @@ impl<'a> CGroupTreeScene<'a> {
         Some(vec![Action::CGroupSort(new_sort), Action::Reload])
     }
 
+    #[must_use]
     fn sort_stat(&mut self) -> PollResult {
         let new_sort = match self.sort {
             CGroupSortOrder::StatAsc => CGroupSortOrder::StatDsc,
@@ -80,6 +82,7 @@ impl<'a> CGroupTreeScene<'a> {
         Some(vec![Action::CGroupSort(new_sort), Action::Reload])
     }
 
+    #[must_use]
     fn next_stat(&self, up: bool) -> PollResult {
         let new_stat = if up {
             (self.stat + 1) % STATS.len()
@@ -92,6 +95,7 @@ impl<'a> CGroupTreeScene<'a> {
         Some(vec![Action::Stat(new_stat), Action::Reload])
     }
 
+    #[must_use]
     fn procs(&mut self, threads: bool, include_children: bool) -> PollResult {
         self.tree.cgroup().map(|cgroup| {
             vec![
@@ -170,6 +174,8 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             KeyCode::Right => self.tree.right(),
             KeyCode::Down => self.tree.down(),
             KeyCode::Up => self.tree.up(),
+            KeyCode::PageDown => self.tree.pg_down(),
+            KeyCode::PageUp => self.tree.pg_up(),
             KeyCode::Home => self.tree.first(),
             KeyCode::End => self.tree.last(),
             KeyCode::Char('c') => self.tree.close_all(),

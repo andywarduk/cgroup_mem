@@ -145,6 +145,7 @@ impl<'a> Scene for HelpScene<'a> {
     }
 
     /// Key event
+    #[must_use]
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {

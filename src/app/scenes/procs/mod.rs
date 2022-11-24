@@ -90,6 +90,7 @@ impl<'a> ProcsScene<'a> {
         self.include_children = include_children;
     }
 
+    #[must_use]
     fn sort_pid(&mut self) -> PollResult {
         let new_sort = match self.sort {
             ProcSortOrder::PidAsc => ProcSortOrder::PidDsc,
@@ -99,6 +100,7 @@ impl<'a> ProcsScene<'a> {
         Some(vec![Action::ProcSort(new_sort), Action::Reload])
     }
 
+    #[must_use]
     fn sort_name(&mut self) -> PollResult {
         let new_sort = match self.sort {
             ProcSortOrder::CmdAsc => ProcSortOrder::CmdDsc,
@@ -108,6 +110,7 @@ impl<'a> ProcsScene<'a> {
         Some(vec![Action::ProcSort(new_sort), Action::Reload])
     }
 
+    #[must_use]
     fn sort_stat(&mut self) -> PollResult {
         let new_sort = match self.sort {
             ProcSortOrder::StatAsc => ProcSortOrder::StatDsc,
@@ -129,6 +132,7 @@ impl<'a> ProcsScene<'a> {
         }
     }
 
+    #[must_use]
     fn next_stat(&self, up: bool) -> PollResult {
         let mut new_stat = self.stat;
 
@@ -209,6 +213,7 @@ impl<'a> Scene for ProcsScene<'a> {
     }
 
     /// Key event
+    #[must_use]
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
             KeyCode::Char('q')

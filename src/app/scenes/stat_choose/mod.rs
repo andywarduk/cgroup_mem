@@ -108,6 +108,7 @@ impl<'a> Scene for StatChooseScene<'a> {
     }
 
     /// Key events
+    #[must_use]
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {

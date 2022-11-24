@@ -195,12 +195,7 @@ impl<'a> ProcsTable<'a> {
         let size = frame.size();
 
         // Calculate number of rows in a page
-        self.page_size = block.inner(size).height;
-
-        if self.page_size > 0 {
-            // Take one off for the heading row
-            self.page_size -= 1;
-        }
+        self.page_size = std::cmp::max(3, block.inner(size).height) - 2;
 
         if let Some(error) = &self.error {
             // Display error message
@@ -225,27 +220,27 @@ impl<'a> ProcsTable<'a> {
 
     #[must_use]
     pub fn up(&mut self) -> PollResult {
-        self.move_by(-1)
+        self.move_by(-1, -1)
     }
 
     #[must_use]
     pub fn down(&mut self) -> PollResult {
-        self.move_by(1)
+        self.move_by(1, 0)
     }
 
     #[must_use]
     pub fn pgup(&mut self) -> PollResult {
-        self.move_by(-(self.page_size as isize))
+        self.move_by(-(self.page_size as isize), 0)
     }
 
     #[must_use]
     pub fn pgdown(&mut self) -> PollResult {
-        self.move_by(self.page_size as isize)
+        self.move_by(self.page_size as isize, self.page_size as isize)
     }
 
     #[must_use]
     pub fn home(&mut self) -> PollResult {
-        self.move_to(1)
+        self.move_to(0)
     }
 
     #[must_use]
@@ -254,7 +249,7 @@ impl<'a> ProcsTable<'a> {
     }
 
     #[must_use]
-    fn move_by(&mut self, amount: isize) -> PollResult {
+    fn move_by(&mut self, amount: isize, no_pos: isize) -> PollResult {
         if amount == 0 || self.items.is_empty() {
             return None;
         }
@@ -283,7 +278,7 @@ impl<'a> ProcsTable<'a> {
             }
         } else {
             // No row selected yet
-            self.move_to(amount)
+            self.move_to(no_pos)
         }
     }
 
@@ -302,7 +297,7 @@ impl<'a> ProcsTable<'a> {
                 self.items.len() - adjust
             }
         } else {
-            cmp::min((new_row - 1) as usize, self.items.len() - 1)
+            cmp::min(new_row as usize, self.items.len() - 1)
         };
 
         self.state.select(Some(new_row));
@@ -314,6 +309,7 @@ impl<'a> ProcsTable<'a> {
         self.state = TableState::default();
     }
 
+    #[must_use]
     pub fn selected(&self) -> Option<usize> {
         self.state.selected()
     }
