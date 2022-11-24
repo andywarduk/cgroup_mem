@@ -35,10 +35,7 @@ impl<'a> StatChooseScene<'a> {
             })
             .collect();
 
-        Self {
-            items,
-            state: ListState::default(),
-        }
+        Self { items, state: ListState::default() }
     }
 
     pub fn set_stat(&mut self, stat: usize) {
@@ -113,9 +110,7 @@ impl<'a> Scene for StatChooseScene<'a> {
     /// Key events
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
-                Some(vec![Action::Scene(AppScene::CGroupTree)])
-            }
+            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => Some(vec![Action::Scene(AppScene::CGroupTree)]),
             KeyCode::Down => self.down(),
             KeyCode::Up => self.up(),
             KeyCode::Enter | KeyCode::Char(' ') => self.select(),

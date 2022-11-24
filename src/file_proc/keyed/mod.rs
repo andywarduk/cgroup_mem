@@ -16,12 +16,7 @@ pub struct KeyedProcessor {
 
 impl KeyedProcessor {
     pub fn new(match_col: usize, match_val: &str, ret_col: usize) -> Self {
-        Self {
-            file: None,
-            match_col,
-            match_val: match_val.into(),
-            ret_col,
-        }
+        Self { file: None, match_col, match_val: match_val.into(), ret_col }
     }
 
     pub fn set_file(&mut self, file: &str) {

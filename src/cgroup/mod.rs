@@ -1,8 +1,8 @@
 pub mod stats;
 
 use std::{
-    io::{self, BufReader, BufRead},
     fs::File,
+    io::{self, BufRead, BufReader},
     path::{Path, PathBuf},
 };
 
@@ -20,21 +20,11 @@ pub struct CGroup {
 
 impl CGroup {
     fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            error: None,
-            stat: 0,
-            children: Vec::new(),
-        }
+        Self { path, error: None, stat: 0, children: Vec::new() }
     }
 
     fn new_error(path: PathBuf, msg: String) -> Self {
-        Self {
-            path,
-            error: Some(msg),
-            stat: 0,
-            children: Vec::new(),
-        }
+        Self { path, error: Some(msg), stat: 0, children: Vec::new() }
     }
 
     pub fn path(&self) -> &PathBuf {
@@ -165,9 +155,13 @@ fn load_cgroup_rec(
     // Sort the children
     match sort {
         CGroupSortOrder::NameAsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path)),
-        CGroupSortOrder::NameDsc => cgroup.children.sort_by(|a, b| a.path.cmp(&b.path).reverse()),
+        CGroupSortOrder::NameDsc => cgroup
+            .children
+            .sort_by(|a, b| a.path.cmp(&b.path).reverse()),
         CGroupSortOrder::StatAsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat)),
-        CGroupSortOrder::StatDsc => cgroup.children.sort_by(|a, b| a.stat.cmp(&b.stat).reverse()),
+        CGroupSortOrder::StatDsc => cgroup
+            .children
+            .sort_by(|a, b| a.stat.cmp(&b.stat).reverse()),
     }
 
     Ok(cgroup)
@@ -182,11 +176,6 @@ fn cgroup_has_memory_controller(path: &Path) -> io::Result<bool> {
     match BufReader::new(file).lines().next() {
         None => Ok(false),
         Some(Err(e)) => Err(e)?,
-        Some(Ok(line)) => {
-            Ok(line
-                .split_whitespace()
-                .any(|s| s == "memory")
-            )
-        }
+        Some(Ok(line)) => Ok(line.split_whitespace().any(|s| s == "memory")),
     }
 }

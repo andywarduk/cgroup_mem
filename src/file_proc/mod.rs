@@ -2,12 +2,7 @@ mod count;
 mod keyed;
 mod single_value;
 
-use std::{
-    fmt::Display,
-    io,
-    num::ParseIntError,
-    path::Path,
-};
+use std::{fmt::Display, io, num::ParseIntError, path::Path};
 
 pub use self::{count::CountProcessor, keyed::KeyedProcessor, single_value::SingleValueProcessor};
 
@@ -94,7 +89,7 @@ pub fn get_file_processor(def: &str) -> Option<Box<dyn FileProcessor>> {
         "#" => {
             // Format is "filename/#" for line count processor
             if split.len() != 2 {
-                return None
+                return None;
             }
 
             let mut proc = CountProcessor::new();

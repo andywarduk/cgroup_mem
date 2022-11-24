@@ -1,8 +1,4 @@
-use std::{
-    cmp,
-    io::Stdout,
-    path::Path,
-};
+use std::{cmp, io::Stdout, path::Path};
 
 use tui::{
     backend::CrosstermBackend,
@@ -63,18 +59,14 @@ impl<'a> ProcsTable<'a> {
 
         // Re-select PID if we had one and it's still there
         if let Some(old_pid) = old_selected_pid {
-            self.state.select(self.procs.iter().position(|p| p.pid == old_pid));
+            self.state
+                .select(self.procs.iter().position(|p| p.pid == old_pid));
         } else {
             self.state.select(None);
         }
     }
 
-    fn build_table_cells(
-        &mut self,
-        threads: bool,
-        stat: usize,
-        sort: ProcSortOrder,
-    ) {
+    fn build_table_cells(&mut self, threads: bool, stat: usize, sort: ProcSortOrder) {
         let mut header_cells = Vec::new();
         let mut widths = Vec::new();
 
@@ -128,16 +120,9 @@ impl<'a> ProcsTable<'a> {
                     }
                 })
                 .collect();
-            
+
             // Calculate max stat length
-            stat_len = cmp::max(
-                text.chars().count(),
-                stat_spans
-                    .iter()
-                    .map(|s| s.width())
-                    .max()
-                    .unwrap_or(0),
-            );
+            stat_len = cmp::max(text.chars().count(), stat_spans.iter().map(|s| s.width()).max().unwrap_or(0));
 
             header_cells.push(Cell::from(format!("{:>1$}", text, stat_len)));
             widths.push(Constraint::Length(cmp::max(7, stat_len as u16)));
@@ -153,14 +138,7 @@ impl<'a> ProcsTable<'a> {
         }
 
         // Calculate max command length
-        let cmd_len = cmp::max(
-            text.chars().count(),
-            self.procs
-                .iter()
-                .map(|p| p.cmd.len())
-                .max()
-                .unwrap_or(0),
-        );
+        let cmd_len = cmp::max(text.chars().count(), self.procs.iter().map(|p| p.cmd.len()).max().unwrap_or(0));
 
         header_cells.push(Cell::from(text));
         widths.push(Constraint::Length(cmd_len as u16));

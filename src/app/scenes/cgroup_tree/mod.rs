@@ -138,11 +138,8 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             CGroupSortOrder::StatDsc => "Size Descending",
         };
 
-        let mut title = format!("CGroup {} {} by {} (press 'h' for help)",
-            STATS[self.stat].short_desc(),
-            qty_desc,
-            sort_desc,
-        );
+        let mut title =
+            format!("CGroup {} {} by {} (press 'h' for help)", STATS[self.stat].short_desc(), qty_desc, sort_desc,);
 
         if self.debug {
             title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());

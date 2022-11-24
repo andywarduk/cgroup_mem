@@ -15,14 +15,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     cursor::MoveTo,
 };
-use std::{
-    io,
-    path::PathBuf,
-};
-use tui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use std::{io, path::PathBuf};
+use tui::{backend::CrosstermBackend, Terminal};
 
 use app::App;
 use cgroup::stats::STATS;

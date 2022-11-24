@@ -162,14 +162,8 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Reloads the process scene
     fn reload(&mut self) {
         // Build the tree
-        self.table.build_table(
-            self.cgroup2fs,
-            &self.cgroup,
-            self.threads,
-            self.include_children,
-            self.stat,
-            self.sort,
-        );
+        self.table
+            .build_table(self.cgroup2fs, &self.cgroup, self.threads, self.include_children, self.stat, self.sort);
         self.loads += 1;
 
         // Calculate next refresh time
@@ -214,9 +208,12 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc
-            | KeyCode::Char('p') | KeyCode::Char('t')
-            | KeyCode::Char('P') | KeyCode::Char('T') => Some(vec![Action::Scene(AppScene::CGroupTree)]),
+            KeyCode::Char('q')
+            | KeyCode::Esc
+            | KeyCode::Char('p')
+            | KeyCode::Char('t')
+            | KeyCode::Char('P')
+            | KeyCode::Char('T') => Some(vec![Action::Scene(AppScene::CGroupTree)]),
             KeyCode::Up => self.table.up(),
             KeyCode::Down => self.table.down(),
             KeyCode::PageUp => self.table.pgup(),

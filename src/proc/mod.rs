@@ -6,12 +6,7 @@ use std::{
 
 use crate::{
     cgroup::stats::{ProcStatType, STATS},
-    file_proc::{
-        get_file_processor,
-        FileProcessor,
-        FileProcessorError,
-        SingleValueProcessor,
-    },
+    file_proc::{get_file_processor, FileProcessor, FileProcessorError, SingleValueProcessor},
 };
 
 pub struct Proc {

@@ -53,13 +53,7 @@ impl<'a> CGroupTree<'a> {
         let cgroups = load_cgroups(cgroup2fs, stat, sort);
 
         // Build tree items
-        let (select, items) = self.build_tree_level(
-            &cgroups,
-            stat,
-            &old_selected,
-            &old_opened,
-            vec![],
-        );
+        let (select, items) = self.build_tree_level(&cgroups, stat, &old_selected, &old_opened, vec![]);
 
         // Save the vectors
         self.cgroups = cgroups;
@@ -69,7 +63,7 @@ impl<'a> CGroupTree<'a> {
         if let Some(select) = select {
             self.state.select(select);
         } else {
-            self.state.select(vec!());
+            self.state.select(vec![]);
         }
 
         // Expand the root node is we're switching to a view with a single root node
@@ -113,22 +107,13 @@ impl<'a> CGroupTree<'a> {
             }
 
             // Was this path previously expanded?
-            if old_opened
-                .iter()
-                .any(|old_path| old_path == path)
-            {
+            if old_opened.iter().any(|old_path| old_path == path) {
                 // Yes - expand it
                 self.state.open(next.clone());
             }
 
             // Process sub nodes
-            let (sub_select, sub_nodes) = self.build_tree_level(
-                cg.children(),
-                stat,
-                old_selected,
-                old_opened,
-                next,
-            );
+            let (sub_select, sub_nodes) = self.build_tree_level(cg.children(), stat, old_selected, old_opened, next);
 
             if sub_select.is_some() {
                 select = sub_select;
@@ -241,9 +226,7 @@ impl<'a> CGroupTree<'a> {
     fn cgroup_from_selected(&self, selected: Vec<usize>) -> Option<&CGroup> {
         let (cgroup, _) = selected
             .iter()
-            .fold((None, &self.cgroups), |(_, level), e| {
-                (Some(&level[*e]), level[*e].children())
-            });
+            .fold((None, &self.cgroups), |(_, level), e| (Some(&level[*e]), level[*e].children()));
 
         cgroup
     }
