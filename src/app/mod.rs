@@ -13,9 +13,10 @@ use super::TermType;
 
 use self::scenes::{
     cgroup_tree::CGroupTreeScene,
-    cgroup_tree_help::CGroupTreeHelpScene,
+    cgroup_tree_help::build_cgroup_tree_help_scene,
+    help::HelpScene,
     procs::ProcsScene,
-    procs_help::ProcsHelpScene,
+    procs_help::build_procs_help_scene,
     stat_choose::StatChooseScene,
     Scene,
 };
@@ -49,10 +50,10 @@ pub struct App<'a> {
     reload: bool,
     running: bool,
     cgroup_tree_scene: Box<CGroupTreeScene<'a>>,
-    cgroup_tree_help_scene: Box<CGroupTreeHelpScene>,
+    cgroup_tree_help_scene: Box<HelpScene<'a>>,
     stat_choose_scene: Box<StatChooseScene<'a>>,
     procs_scene: Box<ProcsScene<'a>>,
-    procs_help_scene: Box<ProcsHelpScene>,
+    procs_help_scene: Box<HelpScene<'a>>,
 }
 
 impl<'a> App<'a> {
@@ -64,10 +65,10 @@ impl<'a> App<'a> {
             reload: true,
             running: true,
             cgroup_tree_scene: Box::new(CGroupTreeScene::new(cgroup2fs, debug)),
-            cgroup_tree_help_scene: Box::new(CGroupTreeHelpScene::new()),
+            cgroup_tree_help_scene: Box::new(build_cgroup_tree_help_scene()),
             stat_choose_scene: Box::new(StatChooseScene::new()),
             procs_scene: Box::new(ProcsScene::new(cgroup2fs, debug)),
-            procs_help_scene: Box::new(ProcsHelpScene::new()),
+            procs_help_scene: Box::new(build_procs_help_scene()),
         };
 
         // Set initial statistic
@@ -123,8 +124,12 @@ impl<'a> App<'a> {
                         Event::Mouse(mouse_event) => {
                             // Mouse event
                             match mouse_event.kind {
-                                MouseEventKind::ScrollDown => scene.key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
-                                MouseEventKind::ScrollUp => scene.key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)),
+                                MouseEventKind::ScrollDown => {
+                                    scene.key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE))
+                                }
+                                MouseEventKind::ScrollUp => {
+                                    scene.key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE))
+                                }
                                 _ => None,
                             }
                         }
