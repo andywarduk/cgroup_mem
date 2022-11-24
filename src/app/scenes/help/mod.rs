@@ -1,19 +1,17 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-
 use tui::{
     style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Paragraph},
 };
 
+use super::Scene;
 use crate::{
     app::{Action, AppScene, PollResult},
     TermType,
 };
-
-use super::Scene;
 
 enum HelpLine<'a> {
     Line(&'a str),
@@ -153,7 +151,9 @@ impl<'a> Scene for HelpScene<'a> {
     /// Key event
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => Some(vec![Action::Scene(AppScene::CGroupTree)]),
+            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
+                Some(vec![Action::Scene(AppScene::CGroupTree)])
+            }
             KeyCode::Down => self.scroll_help_down(),
             KeyCode::Up => self.scroll_help_up(),
             KeyCode::Left => self.scroll_help_left(),

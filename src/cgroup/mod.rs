@@ -6,9 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::file_proc::{get_file_processor, FileProcessor};
-
 use self::stats::{StatType, STATS};
+use crate::file_proc::{get_file_processor, FileProcessor};
 
 #[derive(Debug, Clone)]
 pub struct CGroup {
@@ -20,11 +19,21 @@ pub struct CGroup {
 
 impl CGroup {
     fn new(path: PathBuf) -> Self {
-        Self { path, error: None, stat: 0, children: Vec::new() }
+        Self {
+            path,
+            error: None,
+            stat: 0,
+            children: Vec::new(),
+        }
     }
 
     fn new_error(path: PathBuf, msg: String) -> Self {
-        Self { path, error: Some(msg), stat: 0, children: Vec::new() }
+        Self {
+            path,
+            error: Some(msg),
+            stat: 0,
+            children: Vec::new(),
+        }
     }
 
     pub fn path(&self) -> &PathBuf {

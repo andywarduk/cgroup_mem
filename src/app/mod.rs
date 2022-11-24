@@ -1,15 +1,11 @@
 mod scenes;
 
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 use std::{
     io,
     path::{Path, PathBuf},
 };
 
-use crate::cgroup::CGroupSortOrder;
-use crate::proc::ProcSortOrder;
-
-use super::TermType;
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers, MouseEventKind};
 
 use self::scenes::{
     cgroup_tree::CGroupTreeScene,
@@ -20,6 +16,9 @@ use self::scenes::{
     stat_choose::StatChooseScene,
     Scene,
 };
+use super::TermType;
+use crate::cgroup::CGroupSortOrder;
+use crate::proc::ProcSortOrder;
 
 type PollResult = Option<Vec<Action>>;
 
@@ -124,9 +123,8 @@ impl<'a> App<'a> {
                         Event::Mouse(mouse_event) => {
                             // Mouse event
                             match mouse_event.kind {
-                                MouseEventKind::ScrollDown => {
-                                    scene.key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE))
-                                }
+                                MouseEventKind::ScrollDown => scene
+                                    .key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
                                 MouseEventKind::ScrollUp => {
                                     scene.key_event(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE))
                                 }
@@ -167,7 +165,9 @@ impl<'a> App<'a> {
                 Action::Scene(scene) => self.set_scene(scene),
                 Action::Stat(item) => self.set_stat(item),
                 Action::ProcCGroup(cgroup) => self.set_cgroup(cgroup),
-                Action::ProcMode(threads, include_children) => self.set_procs_mode(threads, include_children),
+                Action::ProcMode(threads, include_children) => {
+                    self.set_procs_mode(threads, include_children)
+                }
                 Action::CGroupSort(sort) => self.set_cgroup_sort(sort),
                 Action::ProcSort(sort) => self.set_proc_sort(sort),
             }

@@ -9,6 +9,8 @@ use std::{
 use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
+use self::tree::CGroupTree;
+use super::Scene;
 use crate::{
     app::{Action, AppScene, PollResult},
     cgroup::{
@@ -18,10 +20,6 @@ use crate::{
     proc::ProcSortOrder,
     TermType,
 };
-
-use self::tree::CGroupTree;
-
-use super::Scene;
 
 pub struct CGroupTreeScene<'a> {
     debug: bool,
@@ -138,11 +136,20 @@ impl<'a> Scene for CGroupTreeScene<'a> {
             CGroupSortOrder::StatDsc => "Size Descending",
         };
 
-        let mut title =
-            format!("CGroup {} {} by {} (press 'h' for help)", STATS[self.stat].short_desc(), qty_desc, sort_desc,);
+        let mut title = format!(
+            "CGroup {} {} by {} (press 'h' for help)",
+            STATS[self.stat].short_desc(),
+            qty_desc,
+            sort_desc,
+        );
 
         if self.debug {
-            title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.tree.selected());
+            title += &format!(
+                " ({} loads, {} draws, {:?})",
+                self.loads,
+                self.draws,
+                self.tree.selected()
+            );
         }
 
         terminal.draw(|f| {

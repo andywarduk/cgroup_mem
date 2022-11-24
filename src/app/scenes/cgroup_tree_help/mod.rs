@@ -8,20 +8,35 @@ pub fn build_cgroup_tree_help_scene<'a>() -> HelpScene<'a> {
 
     help.add_key("Up Arrow", "Move selection up.");
     help.add_key("Down Arrow", "Move selection down.");
-    help.add_key("Left Arrow", "Collapse tree node if on a parent node or move to parent otherwise.");
+    help.add_key(
+        "Left Arrow",
+        "Collapse tree node if on a parent node or move to parent otherwise.",
+    );
     help.add_key("Right Arrow", "Expand tree node if on a parent node.");
     help.add_key("Home", "Move selection to the top.");
     help.add_key("End", "Move selection to the end.");
-    help.add_key("n", "Sort by cgroup name. Pressing again toggles ascending / descending sort order.");
-    help.add_key("s", "Sort by statistic. Pressing again toggles ascending / descending sort order.");
+    help.add_key(
+        "n",
+        "Sort by cgroup name. Pressing again toggles ascending / descending sort order.",
+    );
+    help.add_key(
+        "s",
+        "Sort by statistic. Pressing again toggles ascending / descending sort order.",
+    );
     help.add_key("c", "Collapse all expanded nodes.");
     help.add_key("z", "Select statistic to show.");
     help.add_key("[", "Move to previous statistic.");
     help.add_key("]", "Move to next statistic.");
     help.add_key("p", "Show processes for the selected cgroup.");
-    help.add_key("P", "Show processes for the selected cgroup and all descendents.");
+    help.add_key(
+        "P",
+        "Show processes for the selected cgroup and all descendents.",
+    );
     help.add_key("t", "Show threads for the selected cgroup.");
-    help.add_key("T", "Show threads for the selected cgroup and all descendents.");
+    help.add_key(
+        "T",
+        "Show threads for the selected cgroup and all descendents.",
+    );
     help.add_key("r", "Refresh the list.");
     help.add_key("h", "Shows this help screen.");
     help.add_key("Esc / q", "Exit the program.");
@@ -32,38 +47,3 @@ pub fn build_cgroup_tree_help_scene<'a>() -> HelpScene<'a> {
     help
 }
 
-// impl CGroupTreeHelpScene {
-//     pub fn new() -> Self {
-//         Self { help_scroll: 0 }
-//     }
-
-//     fn scroll_help_up(&mut self) -> PollResult {
-//         if self.help_scroll > 0 {
-//             self.help_scroll -= 1;
-//             Some(vec![])
-//         } else {
-//             None
-//         }
-//     }
-
-//     fn scroll_help_down(&mut self) -> PollResult {
-//         if self.help_scroll < u16::MAX {
-//             self.help_scroll += 1;
-//             Some(vec![])
-//         } else {
-//             None
-//         }
-//     }
-// }
-
-// impl CGroupTreeHelpScene {
-
-//             // Create the paragraph
-//             let para = Paragraph::new(text)
-//                 .block(Block::default().title("Help").borders(Borders::ALL))
-//                 .scroll((self.help_scroll, 0));
-
-//             // Draw the paragraph
-//             f.render_widget(para, size);
-//         })?;
-// }

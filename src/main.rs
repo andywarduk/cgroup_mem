@@ -8,6 +8,8 @@ mod file_proc;
 mod formatters;
 mod proc;
 
+use std::{io, path::PathBuf};
+
 use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
@@ -15,12 +17,11 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
     cursor::MoveTo,
 };
-use std::{io, path::PathBuf};
 use tui::{backend::CrosstermBackend, Terminal};
 
-use app::App;
-use cgroup::stats::STATS;
-use file_proc::{FileProcessor, KeyedProcessor};
+use crate::app::App;
+use crate::cgroup::stats::STATS;
+use crate::file_proc::{FileProcessor, KeyedProcessor};
 
 /// Command line arguments
 #[derive(Parser, Debug)]
@@ -61,7 +62,12 @@ fn main() -> Result<(), io::Error> {
     match setup_terminal() {
         Ok(mut terminal) => {
             // Run the application
-            let mut app = App::new(&mut terminal, &cgroup2fs, (args.stat - 1) as usize, args.debug);
+            let mut app = App::new(
+                &mut terminal,
+                &cgroup2fs,
+                (args.stat - 1) as usize,
+                args.debug,
+            );
 
             let res = app.run();
 

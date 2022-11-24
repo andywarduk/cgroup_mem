@@ -10,6 +10,8 @@ use std::{
 use crossterm::event::{KeyCode, KeyEvent};
 use tui::widgets::{Block, Borders};
 
+use self::table::ProcsTable;
+use super::Scene;
 use crate::{
     app::{Action, AppScene, PollResult},
     cgroup::{
@@ -19,10 +21,6 @@ use crate::{
     proc::ProcSortOrder,
     TermType,
 };
-
-use self::table::ProcsTable;
-
-use super::Scene;
 
 pub struct ProcsScene<'a> {
     debug: bool,
@@ -162,8 +160,14 @@ impl<'a> Scene for ProcsScene<'a> {
     /// Reloads the process scene
     fn reload(&mut self) {
         // Build the tree
-        self.table
-            .build_table(self.cgroup2fs, &self.cgroup, self.threads, self.include_children, self.stat, self.sort);
+        self.table.build_table(
+            self.cgroup2fs,
+            &self.cgroup,
+            self.threads,
+            self.include_children,
+            self.stat,
+            self.sort,
+        );
         self.loads += 1;
 
         // Calculate next refresh time
@@ -192,7 +196,12 @@ impl<'a> Scene for ProcsScene<'a> {
             let mut title = format!("{} for {}", ptype, cgroup_str);
 
             if self.debug {
-                title += &format!(" ({} loads, {} draws, {:?})", self.loads, self.draws, self.table.selected());
+                title += &format!(
+                    " ({} loads, {} draws, {:?})",
+                    self.loads,
+                    self.draws,
+                    self.table.selected()
+                );
             }
 
             // Create the block
@@ -225,8 +234,14 @@ impl<'a> Scene for ProcsScene<'a> {
             KeyCode::Char('s') => self.sort_stat(),
             KeyCode::Char('[') => self.next_stat(false),
             KeyCode::Char(']') => self.next_stat(true),
-            KeyCode::Char('a') => Some(vec![Action::ProcMode(!self.threads, self.include_children), Action::Reload]),
-            KeyCode::Char('c') => Some(vec![Action::ProcMode(self.threads, !self.include_children), Action::Reload]),
+            KeyCode::Char('a') => Some(vec![
+                Action::ProcMode(!self.threads, self.include_children),
+                Action::Reload,
+            ]),
+            KeyCode::Char('c') => Some(vec![
+                Action::ProcMode(self.threads, !self.include_children),
+                Action::Reload,
+            ]),
             KeyCode::Char('h') => Some(vec![Action::Scene(AppScene::ProcsHelp)]),
             KeyCode::Char('r') => Some(vec![Action::Reload]),
             _ => None,

@@ -1,20 +1,18 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-
 use tui::{
     style::{Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
+use super::Scene;
 use crate::{
     app::{Action, AppScene, PollResult},
     cgroup::stats::STATS,
     TermType,
 };
-
-use super::Scene;
 
 pub struct StatChooseScene<'a> {
     items: Vec<ListItem<'a>>,
@@ -29,13 +27,19 @@ impl<'a> StatChooseScene<'a> {
             .enumerate()
             .map(|(i, stat)| {
                 ListItem::new(Spans::from(vec![
-                    Span::styled(format!(" {:>2} ", i + 1), Style::default().add_modifier(Modifier::DIM)),
+                    Span::styled(
+                        format!(" {:>2} ", i + 1),
+                        Style::default().add_modifier(Modifier::DIM),
+                    ),
                     Span::from(stat.desc()),
                 ]))
             })
             .collect();
 
-        Self { items, state: ListState::default() }
+        Self {
+            items,
+            state: ListState::default(),
+        }
     }
 
     pub fn set_stat(&mut self, stat: usize) {
@@ -110,7 +114,9 @@ impl<'a> Scene for StatChooseScene<'a> {
     /// Key events
     fn key_event(&mut self, key_event: KeyEvent) -> PollResult {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => Some(vec![Action::Scene(AppScene::CGroupTree)]),
+            KeyCode::Char('q') | KeyCode::Char('h') | KeyCode::Esc => {
+                Some(vec![Action::Scene(AppScene::CGroupTree)])
+            }
             KeyCode::Down => self.down(),
             KeyCode::Up => self.up(),
             KeyCode::Enter | KeyCode::Char(' ') => self.select(),

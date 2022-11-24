@@ -3,7 +3,6 @@ use std::{io, time::Duration};
 use crossterm::event::KeyEvent;
 
 use super::PollResult;
-
 use crate::TermType;
 
 pub mod cgroup_tree;

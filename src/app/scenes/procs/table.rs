@@ -71,7 +71,11 @@ impl<'a> ProcsTable<'a> {
         let mut widths = Vec::new();
 
         // PID/TID column
-        let mut text = if threads { "TID".to_string() } else { "PID".to_string() };
+        let mut text = if threads {
+            "TID".to_string()
+        } else {
+            "PID".to_string()
+        };
 
         match sort {
             ProcSortOrder::PidAsc => text += " ▼",
@@ -122,7 +126,10 @@ impl<'a> ProcsTable<'a> {
                 .collect();
 
             // Calculate max stat length
-            stat_len = cmp::max(text.chars().count(), stat_spans.iter().map(|s| s.width()).max().unwrap_or(0));
+            stat_len = cmp::max(
+                text.chars().count(),
+                stat_spans.iter().map(|s| s.width()).max().unwrap_or(0),
+            );
 
             header_cells.push(Cell::from(format!("{:>1$}", text, stat_len)));
             widths.push(Constraint::Length(cmp::max(7, stat_len as u16)));
@@ -138,7 +145,10 @@ impl<'a> ProcsTable<'a> {
         }
 
         // Calculate max command length
-        let cmd_len = cmp::max(text.chars().count(), self.procs.iter().map(|p| p.cmd.len()).max().unwrap_or(0));
+        let cmd_len = cmp::max(
+            text.chars().count(),
+            self.procs.iter().map(|p| p.cmd.len()).max().unwrap_or(0),
+        );
 
         header_cells.push(Cell::from(text));
         widths.push(Constraint::Length(cmd_len as u16));

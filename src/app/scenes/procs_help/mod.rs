@@ -15,8 +15,14 @@ pub fn build_procs_help_scene<'a>() -> HelpScene<'a> {
     help.add_key("End", "Move selection to the end.");
     help.add_key("a", "Toggle between processes and threads.");
     help.add_key("c", "Toggle child cgroup processes/threads.");
-    help.add_key("n", "Sort by command. Pressing again toggles ascending / descending sort order.");
-    help.add_key("s", "Sort by memory usage / PID. Pressing again toggles ascending / descending sort order.");
+    help.add_key(
+        "n",
+        "Sort by command. Pressing again toggles ascending / descending sort order.",
+    );
+    help.add_key(
+        "s",
+        "Sort by memory usage / PID. Pressing again toggles ascending / descending sort order.",
+    );
     help.add_key("[", "Move to previous statistic.");
     help.add_key("]", "Move to next statistic.");
     help.add_key("r", "Refresh the list.");

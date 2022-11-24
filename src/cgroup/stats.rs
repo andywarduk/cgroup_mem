@@ -173,7 +173,15 @@ impl<'a> Stat<'a> {
         proc_short_desc: &'a str,
         proc_stype: ProcStatType,
     ) -> Self {
-        Self { def, short_desc, desc, stype, proc_def, proc_short_desc, proc_stype }
+        Self {
+            def,
+            short_desc,
+            desc,
+            stype,
+            proc_def,
+            proc_short_desc,
+            proc_stype,
+        }
     }
 
     pub fn def(&self) -> &str {
