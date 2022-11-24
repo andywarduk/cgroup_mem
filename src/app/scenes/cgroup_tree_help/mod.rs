@@ -46,4 +46,3 @@ pub fn build_cgroup_tree_help_scene<'a>() -> HelpScene<'a> {
 
     help
 }
-

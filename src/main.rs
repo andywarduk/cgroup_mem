@@ -12,10 +12,17 @@ use std::{io, path::PathBuf};
 
 use clap::Parser;
 use crossterm::{
+    cursor::MoveTo,
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
-    cursor::MoveTo,
+    terminal::{
+        disable_raw_mode,
+        enable_raw_mode,
+        Clear,
+        ClearType,
+        EnterAlternateScreen,
+        LeaveAlternateScreen,
+    },
 };
 use tui::{backend::CrosstermBackend, Terminal};
 
@@ -88,7 +95,12 @@ type TermType = Terminal<CrosstermBackend<io::Stdout>>;
 fn setup_terminal() -> Result<TermType, io::Error> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture, Clear(ClearType::All))?;
+    execute!(
+        stdout,
+        EnterAlternateScreen,
+        EnableMouseCapture,
+        Clear(ClearType::All)
+    )?;
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)?;
 
