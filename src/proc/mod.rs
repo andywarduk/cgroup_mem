@@ -145,7 +145,6 @@ fn load_pids(cgroup_path: &Path, threads: bool, include_children: bool) -> io::R
     if include_children {
         for child_pids in cgroup_path
             .read_dir()?
-            .into_iter()
             .filter_map(|e| e.ok())
             .map(|e| e.path())
             .filter(|e| e.is_dir())
