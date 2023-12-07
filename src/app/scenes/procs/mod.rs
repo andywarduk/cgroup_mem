@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::widgets::{Block, Borders};
+use ratatui::widgets::{Block, Borders};
 
 use self::table::ProcsTable;
 use super::Scene;

@@ -5,7 +5,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::widgets::{Block, Borders};
+use ratatui::widgets::{Block, Borders};
 
 use self::tree::CGroupTree;
 use super::Scene;

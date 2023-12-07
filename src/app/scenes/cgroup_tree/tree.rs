@@ -1,11 +1,9 @@
-use std::io::Stdout;
 use std::path::{Path, PathBuf};
 
-use tui::backend::CrosstermBackend;
-use tui::style::{Color, Modifier, Style};
-use tui::text::{Span, Spans, Text};
-use tui::widgets::Block;
-use tui::Frame;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::Block;
+use ratatui::Frame;
 use tui_tree_widget::{flatten, Tree, TreeItem, TreeState};
 
 use crate::app::PollResult;
@@ -16,8 +14,8 @@ use crate::formatters::{format_mem_qty, format_qty};
 #[derive(Default)]
 pub struct CGroupTree<'a> {
     cgroups: Vec<CGroup>,
-    items: Vec<TreeItem<'a>>,
-    state: TreeState,
+    items: Vec<TreeItem<'a, usize>>,
+    state: TreeState<usize>,
     single_root: bool,
     page_size: u16,
 }
@@ -76,7 +74,7 @@ impl<'a> CGroupTree<'a> {
         old_selected: &Option<PathBuf>,
         old_opened: &Vec<PathBuf>,
         cur_item: Vec<usize>,
-    ) -> (Option<Vec<usize>>, Vec<TreeItem<'a>>) {
+    ) -> (Option<Vec<usize>>, Vec<TreeItem<'a, usize>>) {
         let mut select = None;
         let mut tree_items = Vec::new();
 
@@ -113,7 +111,7 @@ impl<'a> CGroupTree<'a> {
             }
 
             // Push this item
-            tree_items.push(TreeItem::new(text, sub_nodes));
+            tree_items.push(TreeItem::new(i, text, sub_nodes).unwrap());
         }
 
         (select, tree_items)
@@ -131,7 +129,7 @@ impl<'a> CGroupTree<'a> {
 
         let path = Span::from(pathstr);
 
-        Text::from(Spans::from(match cgroup.error() {
+        Text::from(Line::from(match cgroup.error() {
             Some(msg) => {
                 vec![
                     Span::raw("         "),
@@ -150,7 +148,7 @@ impl<'a> CGroupTree<'a> {
         }))
     }
 
-    pub fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, block: Block) {
+    pub fn render(&mut self, frame: &mut Frame, block: Block) {
         // Get the size of the frame
         let size = frame.size();
 
@@ -159,6 +157,7 @@ impl<'a> CGroupTree<'a> {
 
         // Create the tree
         let tree = Tree::new(self.items.clone())
+            .unwrap()
             .block(block)
             .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
@@ -229,7 +228,7 @@ impl<'a> CGroupTree<'a> {
 
     #[must_use]
     pub fn first(&mut self) -> PollResult {
-        self.state.select_first();
+        self.state.select_first(&self.items);
         Some(vec![])
     }
 

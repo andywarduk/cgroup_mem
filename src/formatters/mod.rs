@@ -1,7 +1,7 @@
 use std::iter::successors;
 
-use tui::style::{Color, Style};
-use tui::text::Span;
+use ratatui::style::{Color, Style};
+use ratatui::text::Span;
 
 const POWERS: [&str; 7] = [" ", "k", "M", "G", "T", "P", "E"];
 const COLOURS: [Color; 7] = [

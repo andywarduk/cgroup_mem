@@ -1,9 +1,9 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::style::{Modifier, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{Block, Borders, List, ListItem, ListState};
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, List, ListItem, ListState};
 
 use super::Scene;
 use crate::app::{Action, AppScene, PollResult};
@@ -22,7 +22,7 @@ impl<'a> StatChooseScene<'a> {
             .iter()
             .enumerate()
             .map(|(i, stat)| {
-                ListItem::new(Spans::from(vec![
+                ListItem::new(Line::from(vec![
                     Span::styled(
                         format!(" {:>2} ", i + 1),
                         Style::default().add_modifier(Modifier::DIM),

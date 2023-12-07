@@ -1,9 +1,9 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use tui::style::{Color, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{Block, Borders, Paragraph};
+use ratatui::style::{Color, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Paragraph};
 
 use super::Scene;
 use crate::app::{Action, AppScene, PollResult};
@@ -96,12 +96,12 @@ impl<'a> Scene for HelpScene<'a> {
             let block = Block::default().title("Help").borders(Borders::ALL);
 
             // Create text
-            let text: Vec<Spans<'a>> = self
+            let text: Vec<Line<'a>> = self
                 .lines
                 .iter()
                 .map(|line| match &line {
-                    HelpLine::Line(line) => Spans::from(Span::<'a>::raw(*line)),
-                    HelpLine::Key(key, desc) => Spans::from(vec![
+                    HelpLine::Line(line) => Line::from(Span::<'a>::raw(*line)),
+                    HelpLine::Key(key, desc) => Line::from(vec![
                         Span::styled(
                             format!("  {:<width$}  ", key, width = self.max_key),
                             Style::default().fg(Color::Red),

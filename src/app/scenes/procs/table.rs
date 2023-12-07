@@ -1,13 +1,11 @@
 use std::cmp;
-use std::io::Stdout;
 use std::path::Path;
 
-use tui::backend::CrosstermBackend;
-use tui::layout::Constraint;
-use tui::style::{Color, Modifier, Style};
-use tui::text::{Span, Spans};
-use tui::widgets::{Block, Cell, Paragraph, Row, Table, TableState};
-use tui::Frame;
+use ratatui::layout::Constraint;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, TableState};
+use ratatui::Frame;
 
 use crate::app::PollResult;
 use crate::cgroup::stats::{ProcStatType, STATS};
@@ -176,7 +174,7 @@ impl<'a> ProcsTable<'a> {
                     }
                     spans.push(span.clone());
 
-                    cells.push(Cell::from(Spans::from(spans)));
+                    cells.push(Cell::from(Line::from(spans)));
                 }
 
                 cells.push(Cell::from(proc.cmd.clone()));
@@ -190,7 +188,7 @@ impl<'a> ProcsTable<'a> {
         self.items = body_rows;
     }
 
-    pub fn render(&mut self, frame: &mut Frame<CrosstermBackend<Stdout>>, block: Block) {
+    pub fn render(&mut self, frame: &mut Frame, block: Block) {
         // Get the size of the frame
         let size = frame.size();
 
@@ -200,8 +198,8 @@ impl<'a> ProcsTable<'a> {
         if let Some(error) = &self.error {
             // Display error message
             let para = Paragraph::new(vec![
-                Spans::from(Span::raw("Failed to load processes:")),
-                Spans::from(Span::raw(error)),
+                Line::from(Span::raw("Failed to load processes:")),
+                Line::from(Span::raw(error)),
             ]);
 
             frame.render_widget(para, size);

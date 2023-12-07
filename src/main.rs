@@ -22,8 +22,8 @@ use crossterm::terminal::{
     EnterAlternateScreen,
     LeaveAlternateScreen,
 };
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 
 use crate::app::App;
 use crate::cgroup::get_cgroup2_mount_point;
